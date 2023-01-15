@@ -1,0 +1,14 @@
+name: 'Greeting action'
+description: 'A Github action that logs welcome message for the name provided'
+author: 'cakarci <salihcakarci@gmail.com>'
+inputs:
+  your-name:
+    required: true
+    description: 'The name of the author'
+    default: 'Salih'
+outputs:
+  message:
+    description: 'Hello message'
+runs:
+  using: 'node12'
+  main: 'dist/index.js'

@@ -1,0 +1,94 @@
+name: 'build-test-release'
+on:
+  pull_request:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          yarn
+      - run: |
+          yarn all
+
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      message: ${{ steps.pullRequestAction.outputs.message }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Greeting action
+        uses: ./
+        with:
+          your-name: Salih Cakarci
+        id: greetingAction
+
+      - name: Get output from Greeting action # Print output from previous step
+        run: |
+          echo From next step "${{steps.greetingAction.outputs.message}}"
+
+  log:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - run: |
+          echo From next job "${{needs.test.outputs.message}}"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build, test]
+    env:
+      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          npx semantic-release
+        if: ${{ github.ref == 'refs/heads/master' }}
+
+  update-major-tag:
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update major release tag
+        uses: actions/github-script@v6
+        if: ${{ github.ref == 'refs/heads/master' }}
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          script: |
+            const latestRelease = await github.rest.repos.getLatestRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            })
+            const tagName = latestRelease?.data?.tag_name
+            if (!tagName) {
+              return
+            }
+            const [majorVersion] = tagName.split('.')
+            const ref = `refs/tags/${majorVersion}`
+            console.log(`TagName: ${tagName}, MajorVersion: ${majorVersion}`)
+            const refParams = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref,
+              sha: context.sha
+            }
+            try {
+              await github.rest.git.updateRef({
+                ...refParams,
+                ref: `tags/${majorVersion}`,
+                force: true
+              })
+              console.log(`${ref} is updated with hash: ${context.sha}`)
+            } catch (_e) {
+              console.log(`${ref} does not exist & creating it with hash: ${context.sha}`)
+              console.log('------')
+              await github.rest.git.createRef(refParams)
+              console.log(`${ref} is created with hash: ${context.sha}`)
+            }
