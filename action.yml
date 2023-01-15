@@ -1,5 +1,5 @@
-name: 'Greeting action'
-description: 'A Github action that logs welcome message for the name provided'
+name: 'Pull request workflow with for eyes principle'
+description: 'A Github action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending slack notification for the whole process'
 author: 'cakarci <salihcakarci@gmail.com>'
 inputs:
   your-name:
@@ -10,5 +10,5 @@ outputs:
   message:
     description: 'Hello message'
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'

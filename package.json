@@ -1,7 +1,7 @@
 {
   "version": "0.0.0",
-  "name": "github-actions",
-  "description": "Collection of custom github actions",
+  "name": "pull-request-workflow",
+  "description": "A Github action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending slack notification for the whole process",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -13,7 +13,7 @@
     "all": "yarn build && yarn format && yarn lint && yarn package && yarn test",
     "prepare": "husky install"
   },
-  "repository": "https://github.com/cakarci/github-actions.git",
+  "repository": "https://github.com/cakarci/pull-request-workflow.git",
   "author": "cakarci <salihcakarci@gmail.com>",
   "license": "MIT",
   "private": true,

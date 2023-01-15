@@ -1,6 +1,6 @@
 [![build-test-release](https://github.com/cakarci/github-actions/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/cakarci/github-actions/actions/workflows/build-test-release.yml)
 
-# Greeting action
+# Pull request workflow action
 
 This action is an example action that sends welcome message to the provided name
 
@@ -19,7 +19,7 @@ The greeting message we send you. Default `"Hello Salih"`
 ## Example usage
 
 ```yaml
-uses: cakarci/github-actions@v1
+uses: cakarci/pull-request-workflow@v1
 with:
   your-name: 'Salih'
 ```
