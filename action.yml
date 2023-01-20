@@ -2,13 +2,12 @@ name: 'Pull request workflow with for eyes principle'
 description: 'A Github action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending slack notification for the whole process'
 author: 'cakarci <salihcakarci@gmail.com>'
 inputs:
-  your-name:
+  github-token:
     required: true
-    description: 'The name of the author'
-    default: 'Salih'
+    description: 'Github token'
 outputs:
-  message:
-    description: 'Hello message'
+  context:
+    description: 'Github context'
 runs:
   using: 'node16'
   main: 'dist/index.js'

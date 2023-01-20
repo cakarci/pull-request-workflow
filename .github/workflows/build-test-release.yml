@@ -1,9 +1,10 @@
 name: 'build-test-release'
+
 on:
   pull_request:
   push:
     branches:
-      - '**'
+      - master
     tags-ignore:
       - '**'
 
@@ -12,38 +13,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - run: |
-          yarn
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "dir=$(yarn cache dir)" >> $GITHUB_OUTPUT
+      - name: Use Yarn cache
+        uses: actions/cache@v3
+        id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+        with:
+          path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install dependencies
+        run: yarn install --prefer-offline --frozen-lockfile
       - run: |
           yarn all
 
   test:
     runs-on: ubuntu-latest
-    outputs:
-      message: ${{ steps.pullRequestAction.outputs.message }}
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Run Greeting action
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run Pull Request workflow action
         uses: ./
         with:
-          your-name: Salih Cakarci
-        id: greetingAction
+          github-token: ${{ secrets.GH_TOKEN }}
+        id: pullRequestWorkflowAction
 
       - name: Get output from Greeting action # Print output from previous step
         run: |
-          echo From next step "${{steps.greetingAction.outputs.message}}"
-
-  log:
-    runs-on: ubuntu-latest
-    needs: [test]
-    steps:
-      - run: |
-          echo From next job "${{needs.test.outputs.message}}"
+          echo From next step "${{steps.pullRequestWorkflowAction.outputs.context}}"
 
   release:
     runs-on: ubuntu-latest
     needs: [build, test]
+    if: ${{ github.ref == 'refs/heads/master' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
@@ -58,11 +66,11 @@ jobs:
 
   update-major-tag:
     needs: [release]
+    if: ${{ github.ref == 'refs/heads/master' }}
     runs-on: ubuntu-latest
     steps:
       - name: Update major release tag
         uses: actions/github-script@v6
-        if: ${{ github.ref == 'refs/heads/master' }}
         with:
           github-token: ${{ secrets.GH_TOKEN }}
           script: |

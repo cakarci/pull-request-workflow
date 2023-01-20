@@ -22,5 +22,6 @@ The greeting message we send you. Default `"Hello Salih"`
 uses: cakarci/pull-request-workflow@v1
 with:
   your-name: 'Salih'
+  github-token: ${{ secrets.GH_TOKEN }}
 ```
 

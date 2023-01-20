@@ -1,6 +1,6 @@
-import {welcomeMessage} from './welcome-message'
+import {PullRequestService} from './pull-request-service'
 
 export async function run(): Promise<void> {
-  await welcomeMessage()
+  await PullRequestService()
 }
 run()

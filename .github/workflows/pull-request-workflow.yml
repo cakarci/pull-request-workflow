@@ -1,0 +1,30 @@
+name: 'pull-request-workflow'
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+  pull_request_review:
+  pull_request_review_comment:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run Pull Request workflow action
+        uses: ./
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+        id: pullRequestWorkflowAction
+
+      - name: Get output from Greeting action # Print output from previous step
+        run: |
+          echo From next step "${{steps.pullRequestWorkflowAction.outputs.context}}"
+
+  log:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - run: |
+          echo From next job "${{needs.test.outputs.context}}"
