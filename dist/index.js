@@ -230,8 +230,8 @@ const github_1 = __nccwpck_require__(3273);
 const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        if (github.context.eventName !== 'pull_request') {
-            core.warning(`eventName should be "pull_request" but received: ${github.context.eventName} `);
+        if (!github.context.eventName.startsWith('pull_request')) {
+            core.warning(`eventName should be "pull_request*" but received: ${github.context.eventName} `);
             return;
         }
         core.setOutput('context', github.context.payload.action);
@@ -250,6 +250,15 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
                 repo: github.context.issue.repo,
                 pull_number: github.context.payload.pull_request.number,
                 reviewers: ['scakarci', 'pcakarci']
+            });
+        }
+        if (github.context.eventName === 'pull_request_review' &&
+            github.context.payload.action === 'submitted') {
+            yield github_1.githubService.createComment({
+                owner: 'cakarci',
+                repo: github.context.issue.repo,
+                issue_number: github.context.issue.number,
+                body: `pull request reviewed (${github.context.payload.review.state}) by : ${github.context.payload.sender}`
             });
         }
     }
