@@ -11,7 +11,7 @@ jest.mock('@actions/github', () => ({
   getOctokit: jest.fn(),
   context: {
     payload: {
-      action: 'my-context'
+      action: 'my-action'
     },
     eventName: 'pull_request'
   }
@@ -20,6 +20,6 @@ jest.mock('@actions/github', () => ({
 describe('welcome-message', () => {
   it('should print the context correctly', async () => {
     await PullRequestService()
-    expect(setOutput).toBeCalledWith('context', 'my-context')
+    expect(setOutput).toBeCalledWith('action', 'my-action')
   })
 })

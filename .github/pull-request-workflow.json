@@ -1,3 +1,8 @@
 {
-  "reviewers": ["pcakarci", "scakarci", "cakarci"]
+  "reviewers": ["pcakarci", "scakarci", "cakarci"],
+  "slack": {
+    "pcakarci": "pcakarci",
+    "scakarci": "scakarci",
+    "cakarci": "salihcakarci"
+  }
 }

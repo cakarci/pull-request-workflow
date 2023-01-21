@@ -5,6 +5,12 @@ inputs:
   github-token:
     required: true
     description: 'Github token'
+  slack-token:
+    required: true
+    description: 'Slack token'
+  slack-channel-id:
+    required: true
+    description: 'Slack channel id for the notifications'
 outputs:
   context:
     description: 'Github context'

@@ -1,6 +1,8 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {githubService} from './api/github'
+import {Slack} from './api/slack'
+import {getFileContent} from './utils/get-file-content/get-file-content'
 
 export const PullRequestService = async (): Promise<void> => {
   try {
@@ -10,13 +12,22 @@ export const PullRequestService = async (): Promise<void> => {
       )
       return
     }
-    core.setOutput('context', github.context.payload.action)
+    core.setOutput('action', github.context.payload.action)
     if (github.context.payload.action === 'labeled') {
       await githubService.createComment({
         owner: 'cakarci',
         repo: github.context.issue.repo,
         issue_number: github.context.issue.number,
         body: `you added label: ${github.context.payload.label?.name}`
+      })
+      const data = await getFileContent()
+      await Slack.postMessage({
+        channel: core.getInput('slack-channel-id'),
+        text: `<@U035MNNF8LW> new label: ${
+          github.context.payload.label?.name
+        } added to the PR ${
+          github.context.payload.pull_request?.html_url
+        } and ${JSON.stringify(data)}`
       })
     }
     if (

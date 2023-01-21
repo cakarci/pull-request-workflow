@@ -2,26 +2,35 @@
 
 # Pull request workflow action
 
-This action is an example action that sends welcome message to the provided name
+Pull request workflow with for eyes principle
 
 ## Inputs
 
-### `your-name`
+### `github-token`
 
-**Required** The name of the author. Default `"Salih"`.
+**Required** The GitHub Token that has access to the workflow scope .
+
+### `slack-token`
+
+**Required** The Slack Bot User OAuth Token starts with `xoxb-` which will be required to send messages to a Slack channel.
+
+### `slack-channel`
+
+**Required** The Slack channel for notifications to be sent.
 
 ## Outputs
 
-### `welcome-message`
+### `action`
 
-The greeting message we send you. Default `"Hello Salih"`
+Outputs the GitHub action name
 
 ## Example usage
 
 ```yaml
 uses: cakarci/pull-request-workflow@v1
 with:
-  your-name: 'Salih'
   github-token: ${{ secrets.GH_TOKEN }}
+  slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
+  slack-channel-id: 'C04LNJJUCKS' 
 ```
 
