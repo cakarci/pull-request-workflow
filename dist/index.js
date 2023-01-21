@@ -258,7 +258,7 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
                 owner: 'cakarci',
                 repo: github.context.issue.repo,
                 issue_number: github.context.issue.number,
-                body: `pull request reviewed (${github.context.payload.review.state}) by : ${github.context.payload.sender}`
+                body: `pull request reviewed (${github.context.payload.review.state}) by : ${github.context.actor}`
             });
         }
     }

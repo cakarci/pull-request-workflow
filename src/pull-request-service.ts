@@ -38,7 +38,7 @@ export const PullRequestService = async (): Promise<void> => {
         owner: 'cakarci',
         repo: github.context.issue.repo,
         issue_number: github.context.issue.number,
-        body: `pull request reviewed (${github.context.payload.review.state}) by : ${github.context.payload.sender}`
+        body: `pull request reviewed (${github.context.payload.review.state}) by : ${github.context.actor}`
       })
     }
   } catch (error) {
