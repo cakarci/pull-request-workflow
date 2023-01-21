@@ -418,26 +418,39 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const github_1 = __nccwpck_require__(3273);
 const slack_1 = __nccwpck_require__(8697);
-const get_file_content_1 = __nccwpck_require__(7363);
+const utils_1 = __nccwpck_require__(1606);
 const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f;
     try {
         if (!github.context.eventName.startsWith('pull_request')) {
             core.warning(`eventName should be "pull_request*" but received: ${github.context.eventName} `);
             return;
         }
         core.setOutput('action', github.context.payload.action);
+        const { reviewers, slack } = yield (0, utils_1.getFileContent)();
+        const [firstReviewer, secondReviewer] = (0, utils_1.getRandomListItems)(reviewers, github.context.actor);
         if (github.context.payload.action === 'labeled') {
-            yield github_1.githubService.createComment({
-                owner: 'cakarci',
-                repo: github.context.issue.repo,
-                issue_number: github.context.issue.number,
-                body: `you added label: ${(_a = github.context.payload.label) === null || _a === void 0 ? void 0 : _a.name}`
-            });
-            const data = yield (0, get_file_content_1.getFileContent)();
             yield slack_1.Slack.postMessage({
                 channel: core.getInput('slack-channel-id'),
-                text: `<@U035MNNF8LW> new label: ${(_b = github.context.payload.label) === null || _b === void 0 ? void 0 : _b.name} added to the PR ${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.html_url} and ${JSON.stringify(data)}`
+                blocks: [
+                    {
+                        type: 'section',
+                        text: {
+                            type: 'mrkdwn',
+                            text: `Hi <@${slack[firstReviewer]}> & <@${slack[secondReviewer]}>`
+                        }
+                    },
+                    {
+                        type: 'divider'
+                    },
+                    {
+                        type: 'section',
+                        text: {
+                            type: 'mrkdwn',
+                            text: `A new label \`${(_a = github.context.payload.label) === null || _a === void 0 ? void 0 : _a.name}\` added to <${(_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}|the pull request>`
+                        }
+                    }
+                ]
             });
         }
         if (github.context.payload.action === 'opened' &&
@@ -446,16 +459,18 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
                 owner: github.context.actor,
                 repo: github.context.issue.repo,
                 pull_number: github.context.payload.pull_request.number,
-                reviewers: ['scakarci', 'pcakarci']
+                reviewers: [firstReviewer, secondReviewer]
+            });
+            yield slack_1.Slack.postMessage({
+                channel: core.getInput('slack-channel-id'),
+                text: `Hey <@${slack[firstReviewer]}> & <@${slack[secondReviewer]}> a new PR ${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.html_url} created by ${slack[github.context.actor]}. Let's add your reviews!`
             });
         }
         if (github.context.eventName === 'pull_request_review' &&
             github.context.payload.action === 'submitted') {
-            yield github_1.githubService.createComment({
-                owner: 'cakarci',
-                repo: github.context.issue.repo,
-                issue_number: github.context.issue.number,
-                body: `pull request reviewed (${github.context.payload.review.state}) by : ${github.context.actor}`
+            yield slack_1.Slack.postMessage({
+                channel: core.getInput('slack-channel-id'),
+                text: `Hey <@${slack[(_d = github.context.payload.pull_request) === null || _d === void 0 ? void 0 : _d.user.login]}>, your pull request ${(_e = github.context.payload.pull_request) === null || _e === void 0 ? void 0 : _e.html_url} got reviewed by <@${slack[github.context.actor]}> check the review ${(_f = github.context.payload.review) === null || _f === void 0 ? void 0 : _f.html_url}`
             });
         }
     }
@@ -495,6 +510,101 @@ const getFileContent = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getFileContent = getFileContent;
+
+
+/***/ }),
+
+/***/ 605:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(7363), exports);
+
+
+/***/ }),
+
+/***/ 4797:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getRandomListItems = void 0;
+const getRandomListItems = (list, skip) => {
+    const newList = list.filter(item => item !== skip);
+    const firstRandomIndex = Math.floor(Math.random() * newList.length);
+    const lastList = newList.filter(item => item !== newList[firstRandomIndex]);
+    const secondRandomIndex = Math.floor(Math.random() * lastList.length);
+    return [newList[firstRandomIndex], lastList[secondRandomIndex]];
+};
+exports.getRandomListItems = getRandomListItems;
+
+
+/***/ }),
+
+/***/ 5769:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(4797), exports);
+
+
+/***/ }),
+
+/***/ 1606:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(605), exports);
+__exportStar(__nccwpck_require__(5769), exports);
 
 
 /***/ }),
