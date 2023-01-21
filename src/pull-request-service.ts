@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {githubService} from './api/github'
 import {Slack} from './api/slack'
-import {getFileContent} from './utils/get-file-content/get-file-content'
+import {getFileContent, getRandomListItems} from './utils'
 
 export const PullRequestService = async (): Promise<void> => {
   try {
@@ -27,18 +27,21 @@ export const PullRequestService = async (): Promise<void> => {
           github.context.payload.label?.name
         } added to the PR ${
           github.context.payload.pull_request?.html_url
-        } and ${JSON.stringify(data)}`
+        } and Reviewers: ${JSON.stringify(
+          getRandomListItems(data.reviewers, github.context.actor)
+        )}`
       })
     }
     if (
       github.context.payload.action === 'opened' &&
       github.context.payload.pull_request
     ) {
+      const data = await getFileContent()
       await githubService.requestReviewers({
         owner: github.context.actor,
         repo: github.context.issue.repo,
         pull_number: github.context.payload.pull_request.number,
-        reviewers: ['scakarci', 'pcakarci']
+        reviewers: getRandomListItems(data.reviewers, github.context.actor)
       })
     }
     if (

@@ -1,6 +1,7 @@
 import {readFile} from 'fs/promises'
 interface PullRequestWorkflowInterface {
   reviewers: string[]
+  slack: Record<string, string>
 }
 export const getFileContent =
   async (): Promise<PullRequestWorkflowInterface> => {
