@@ -1,4 +1,6 @@
-[![build-test-release](https://github.com/cakarci/github-actions/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/cakarci/github-actions/actions/workflows/build-test-release.yml)
+[![build-test-release](https://github.com/cakarci/pull-request-workflow/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/build-test-release.yml)
+[![check-dist](https://github.com/cakarci/pull-request-workflow/actions/workflows/check-dist.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/check-dist.yml)
+[![pull-request-workflow](https://github.com/cakarci/pull-request-workflow/actions/workflows/pull-request-workflow.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/pull-request-workflow.yml)
 
 # Pull request workflow action
 
@@ -14,7 +16,7 @@ Pull request workflow with for eyes principle
 
 **Required** The Slack Bot User OAuth Token starts with `xoxb-` which will be required to send messages to a Slack channel.
 
-### `slack-channel`
+### `slack-channel-id`
 
 **Required** The Slack channel for notifications to be sent.
 
