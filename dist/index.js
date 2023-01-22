@@ -429,32 +429,13 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
         core.setOutput('action', github.context.payload.action);
         const { reviewers, slack } = yield (0, utils_1.getFileContent)();
         const [firstReviewer, secondReviewer] = (0, utils_1.getRandomListItems)(reviewers, github.context.actor);
-        if (github.context.payload.action === 'labeled') {
-            yield slack_1.Slack.postMessage({
-                channel: core.getInput('slack-channel-id'),
-                blocks: [
-                    {
-                        type: 'section',
-                        text: {
-                            type: 'mrkdwn',
-                            text: `Hi <@${slack[firstReviewer]}> & <@${slack[secondReviewer]}>`
-                        }
-                    },
-                    {
-                        type: 'divider'
-                    },
-                    {
-                        type: 'section',
-                        text: {
-                            type: 'mrkdwn',
-                            text: `A new label \`${(_a = github.context.payload.label) === null || _a === void 0 ? void 0 : _a.name}\` added to <${(_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.html_url}|the pull request>`
-                        }
-                    }
-                ]
-            });
-        }
         if (github.context.payload.action === 'opened' &&
+            github.context.eventName === 'pull_request' &&
             github.context.payload.pull_request) {
+            const thread = yield getPullRequestThread();
+            if (thread) {
+                return;
+            }
             yield github_1.githubService.requestReviewers({
                 owner: github.context.actor,
                 repo: github.context.issue.repo,
@@ -463,15 +444,43 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
             });
             yield slack_1.Slack.postMessage({
                 channel: core.getInput('slack-channel-id'),
-                text: `Hey <@${slack[firstReviewer]}> & <@${slack[secondReviewer]}> a new PR ${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.html_url} created by ${slack[github.context.actor]}. Let's add your reviews!`
+                text: (_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id,
+                blocks: (0, utils_1.generateSlackMessage)(github.context, slack, firstReviewer, secondReviewer)
             });
         }
-        if (github.context.eventName === 'pull_request_review' &&
-            github.context.payload.action === 'submitted') {
-            yield slack_1.Slack.postMessage({
-                channel: core.getInput('slack-channel-id'),
-                text: `Hey <@${slack[(_d = github.context.payload.pull_request) === null || _d === void 0 ? void 0 : _d.user.login]}>, your pull request ${(_e = github.context.payload.pull_request) === null || _e === void 0 ? void 0 : _e.html_url} got reviewed by <@${slack[github.context.actor]}> check the review ${(_f = github.context.payload.review) === null || _f === void 0 ? void 0 : _f.html_url}`
-            });
+        else {
+            const thread = yield getPullRequestThread();
+            if (github.context.payload.action === 'labeled') {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `A new label \`${(_b = github.context.payload.label) === null || _b === void 0 ? void 0 : _b.name}\` added to <${(_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.html_url}|the pull request>`
+                            }
+                        }
+                    ]
+                });
+            }
+            if (github.context.eventName === 'pull_request_review' &&
+                github.context.payload.action === 'submitted') {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `Hi <@${slack[(_d = github.context.payload.pull_request) === null || _d === void 0 ? void 0 : _d.user.login]}>, your <${(_e = github.context.payload.pull_request) === null || _e === void 0 ? void 0 : _e.html_url}|Pull Request> got reviewed by <@${slack[github.context.actor]}>. \nCheck the <${(_f = github.context.payload.review) === null || _f === void 0 ? void 0 : _f.html_url}|Review>`
+                            }
+                        }
+                    ]
+                });
+            }
         }
     }
     catch (error) {
@@ -480,6 +489,90 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.PullRequestService = PullRequestService;
+const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
+    var _g;
+    const history = yield slack_1.Slack.conversationsHistory({
+        channel: core.getInput('slack-channel-id')
+    });
+    return (_g = history.messages) === null || _g === void 0 ? void 0 : _g.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
+});
+
+
+/***/ }),
+
+/***/ 9413:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateSlackMessage = void 0;
+const generateSlackMessage = (githubContext, slack, firstReviewer, secondReviewer) => {
+    var _a, _b, _c;
+    const repoName = (_a = githubContext.payload.repository) === null || _a === void 0 ? void 0 : _a.name;
+    const repoURL = (_b = githubContext.payload.repository) === null || _b === void 0 ? void 0 : _b.html_url;
+    return [
+        {
+            type: 'header',
+            text: {
+                type: 'plain_text',
+                text: ':rocket:  A New Pull Request is created  :boom:'
+            }
+        },
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: ' :loud_sound: *It is time to add your reviews* :loud_sound:'
+            }
+        },
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Let's add your reviews to the <${(_c = githubContext.payload.pull_request) === null || _c === void 0 ? void 0 : _c.html_url}|Pull Request>`
+            }
+        },
+        {
+            type: 'divider'
+        },
+        {
+            type: 'context',
+            elements: [
+                {
+                    text: `*Reviewers*: <@${slack[firstReviewer]}> & <@${slack[secondReviewer]}>  \n*PR Author*: <@${slack[githubContext.actor]}> \n*Repository*: <${repoURL}|${repoName}>`,
+                    type: 'mrkdwn'
+                }
+            ]
+        }
+    ];
+};
+exports.generateSlackMessage = generateSlackMessage;
+
+
+/***/ }),
+
+/***/ 2184:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(9413), exports);
 
 
 /***/ }),
@@ -605,6 +698,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(605), exports);
 __exportStar(__nccwpck_require__(5769), exports);
+__exportStar(__nccwpck_require__(2184), exports);
 
 
 /***/ }),
