@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {githubService} from './api/github'
 import {Slack} from './api/slack'
-import {getFileContent, getRandomListItems} from './utils'
+import {generateSlackMessage, getFileContent, getRandomListItems} from './utils'
 
 export const PullRequestService = async (): Promise<void> => {
   try {
@@ -54,11 +54,12 @@ export const PullRequestService = async (): Promise<void> => {
       })
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
-        text: `Hey <@${slack[firstReviewer]}> & <@${
-          slack[secondReviewer]
-        }> a new PR ${
-          github.context.payload.pull_request?.html_url
-        } created by ${slack[github.context.actor]}. Let's add your reviews!`
+        blocks: generateSlackMessage(
+          github.context,
+          slack,
+          firstReviewer,
+          secondReviewer
+        )
       })
     }
     if (
