@@ -46,7 +46,7 @@ jobs:
           slack-channel-id: "C04LNJJUCKS"
         id: pullRequestWorkflowAction
 
-      - name: Get output from Greeting action # Print output from previous step
+      - name: Get output from Pull Request workflow action # Print output from previous step
         run: |
           echo From next step "${{steps.pullRequestWorkflowAction.outputs.context}}"
 
