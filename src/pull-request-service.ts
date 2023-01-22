@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {githubService} from './api/github'
 import {Slack} from './api/slack'
-import {getFileContent, getRandomListItems} from './utils'
+import {generateSlackMessage, getFileContent, getRandomListItems} from './utils'
 
 export const PullRequestService = async (): Promise<void> => {
   try {
@@ -19,8 +19,16 @@ export const PullRequestService = async (): Promise<void> => {
       github.context.actor
     )
     if (github.context.payload.action === 'labeled') {
+      const history = await Slack.conversationsHistory({
+        channel: core.getInput('slack-channel-id')
+      })
+      const thread = history.messages?.find(
+        m => m.text === `${github.context.payload.pull_request?.id}`
+      )
+
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
+        thread_ts: thread?.ts,
         blocks: [
           {
             type: 'section',
@@ -36,7 +44,11 @@ export const PullRequestService = async (): Promise<void> => {
             type: 'section',
             text: {
               type: 'mrkdwn',
-              text: `A new label \`${github.context.payload.label?.name}\` added to <${github.context.payload.pull_request?.html_url}|the pull request>`
+              text: `A new label \`${
+                github.context.payload.label?.name
+              }\` added to <${
+                github.context.payload.pull_request?.html_url
+              }|the pull request>\n${JSON.stringify(thread)}`
             }
           }
         ]
@@ -44,6 +56,7 @@ export const PullRequestService = async (): Promise<void> => {
     }
     if (
       github.context.payload.action === 'opened' &&
+      github.context.eventName === 'pull_request' &&
       github.context.payload.pull_request
     ) {
       await githubService.requestReviewers({
@@ -54,11 +67,13 @@ export const PullRequestService = async (): Promise<void> => {
       })
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
-        text: `Hey <@${slack[firstReviewer]}> & <@${
-          slack[secondReviewer]
-        }> a new PR ${
-          github.context.payload.pull_request?.html_url
-        } created by ${slack[github.context.actor]}. Let's add your reviews!`
+        text: github.context.payload.pull_request?.id,
+        blocks: generateSlackMessage(
+          github.context,
+          slack,
+          firstReviewer,
+          secondReviewer
+        )
       })
     }
     if (
