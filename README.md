@@ -69,6 +69,8 @@ jobs:
 
 9. Create `pull-request-workflow.json` file under `./github` folder
 
+- `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
+
 ```json
 {
   "teamName": "Consumer Experience",
