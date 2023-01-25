@@ -420,7 +420,7 @@ const github_1 = __nccwpck_require__(3273);
 const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     try {
         if (!github.context.eventName.startsWith('pull_request')) {
             core.warning(`eventName should be "pull_request*" but received: ${github.context.eventName} `);
@@ -481,6 +481,23 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
                     ]
                 });
             }
+            if (github.context.eventName === 'pull_request' &&
+                github.context.payload.action === 'closed' &&
+                ((_g = github.context.payload.pull_request) === null || _g === void 0 ? void 0 : _g.merged)) {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: [
+                        {
+                            type: 'section',
+                            text: {
+                                type: 'mrkdwn',
+                                text: `Hi <@${slack[(_h = github.context.payload.pull_request) === null || _h === void 0 ? void 0 : _h.user.login]}>, your <${(_j = github.context.payload.pull_request) === null || _j === void 0 ? void 0 : _j.html_url}|Pull Request> got merged by <@${slack[github.context.actor]}>.`
+                            }
+                        }
+                    ]
+                });
+            }
         }
     }
     catch (error) {
@@ -490,11 +507,11 @@ const PullRequestService = () => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.PullRequestService = PullRequestService;
 const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _g;
+    var _k;
     const history = yield slack_1.Slack.conversationsHistory({
         channel: core.getInput('slack-channel-id')
     });
-    return (_g = history.messages) === null || _g === void 0 ? void 0 : _g.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
+    return (_k = history.messages) === null || _k === void 0 ? void 0 : _k.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
 });
 
 
