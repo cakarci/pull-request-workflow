@@ -4,7 +4,18 @@
 
 # Pull request workflow action
 
-Pull request workflow with for eyes principle
+A GitHub action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending Slack notifications for the whole process
+
+
+- It automatically assigns 2 reviewers to your PR from the `githubUserNames` list you provide
+- It keeps your Slack channel as clean as possible as notifications related to a specific PR starts a thread
+
+![Screenshot 2023-01-25 at 15 26 02](https://user-images.githubusercontent.com/4185569/214591195-1dc5223f-c08e-42e1-b572-1f8eb77eaf43.png)
+
+- Every events related to your pull request are added as a thread reply 
+
+![Screenshot 2023-01-25 at 15 26 25](https://user-images.githubusercontent.com/4185569/214591718-d3e19dbe-2603-4451-8fea-30576ec50993.png)
+
 
 ## Inputs
 
@@ -35,13 +46,11 @@ with:
 2. Create a **Slack App** and **Bot User** for that app by following these [steps](https://slack.com/help/articles/115005265703-Create-a-bot-for-your-workspace#add-a-bot-user)
 3. Copy the `Bot User OAuth Token` and add it to your repository secret as `SLACK_BOT_TOKEN` 
    1. ([Check how to create a repository secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository))
-4. Add the following bot token scopes
-   1. Image
+4. Add the bot token scopes like in this [image](https://user-images.githubusercontent.com/4185569/214593602-0a238d97-a5bf-4fb7-9d59-8e1230f15a6c.png)
 5. **[IMPORTANT]** Add your **Bot User** into the **Public Slack channel** you created in step 1
-6. Create a [Personal Access Token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token) and add it to your repository secret as `GH_TOKEN`
-   1. ([Check how to create a repository secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository))
-7. Add the following GitHub personal access token scopes 
-   1. Image
+6. Create a [Personal Access Token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token) and add it to your repository secret as `GH_TOKEN` ([Check how to create a repository secret](https://docs.github.com/en/actions/security-guides/encrypted-secrets#creating-encrypted-secrets-for-a-repository))
+7. Add the GitHub personal access token scopes like in this [image](https://user-images.githubusercontent.com/4185569/214594384-23868a6b-e6d1-4119-b9bd-a2d5c20e3bfd.png)
+
 8. Create `pull-request-workflow.yml` file with the following content under `./github/workflows`
 
 ```yaml
@@ -49,10 +58,13 @@ name: 'pull-request-workflow'
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, closed]
+    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled]
   pull_request_review:
-    types: [submitted]
+    types: [submitted, edited, dismissed]
   pull_request_review_comment:
+    types: [created, edited, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
 
 jobs:
   pull_request_workflow:
@@ -68,6 +80,8 @@ jobs:
 ```
 
 9. Create `pull-request-workflow.json` file under `./github` folder
+
+- `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
 
 ```json
 {

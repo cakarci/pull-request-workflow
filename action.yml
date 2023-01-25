@@ -1,5 +1,5 @@
-name: 'Pull request workflow with for eyes principle'
-description: 'A Github action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending slack notification for the whole process'
+name: 'Pull request workflow'
+description: 'A Github action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending slack notifications for the whole process'
 author: 'cakarci <salihcakarci@gmail.com>'
 inputs:
   github-token:
