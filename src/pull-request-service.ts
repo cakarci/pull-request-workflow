@@ -87,6 +87,31 @@ export const PullRequestService = async (): Promise<void> => {
           ]
         })
       }
+      if (
+        github.context.eventName === 'pull_request' &&
+        github.context.payload.action === 'closed' &&
+        github.context.payload.pull_request?.merged
+      ) {
+        await Slack.postMessage({
+          channel: core.getInput('slack-channel-id'),
+          thread_ts: thread?.ts,
+          blocks: [
+            {
+              type: 'section',
+              text: {
+                type: 'mrkdwn',
+                text: `Hi <@${
+                  slack[github.context.payload.pull_request?.user.login]
+                }>, your <${
+                  github.context.payload.pull_request?.html_url
+                }|Pull Request> got merged by <@${
+                  slack[github.context.actor]
+                }>.`
+              }
+            }
+          ]
+        })
+      }
     }
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)

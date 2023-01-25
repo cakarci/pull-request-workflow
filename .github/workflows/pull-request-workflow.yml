@@ -2,7 +2,7 @@ name: 'pull-request-workflow'
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened, labeled, closed]
   pull_request_review:
     types: [submitted]
   pull_request_review_comment:
