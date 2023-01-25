@@ -12,9 +12,7 @@ A GitHub action that creates a workflow for your pull request including the four
 
 ![Screenshot 2023-01-25 at 15 26 02](https://user-images.githubusercontent.com/4185569/214591195-1dc5223f-c08e-42e1-b572-1f8eb77eaf43.png)
 
-- Every events related to your pull request are added as a thread reply 
-
-![Screenshot 2023-01-25 at 15 26 25](https://user-images.githubusercontent.com/4185569/214591718-d3e19dbe-2603-4451-8fea-30576ec50993.png)
+- Every events related to your pull request are added as a thread reply [Check it here](https://user-images.githubusercontent.com/4185569/214591718-d3e19dbe-2603-4451-8fea-30576ec50993.png)
 
 
 ## Inputs
@@ -71,6 +69,8 @@ jobs:
     runs-on: ubuntu-latest
     name: A job that notifies slack on PR events
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
       - name: Run pull request workflow
         uses: cakarci/pull-request-workflow@v1
         with:
@@ -82,7 +82,7 @@ jobs:
 9. Create `pull-request-workflow.json` file under `./github` folder
 
 - `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
-
+- All the users defined in the `githubUserNames` list should have read/write access to the repository
 ```json
 {
   "teamName": "Consumer Experience",
