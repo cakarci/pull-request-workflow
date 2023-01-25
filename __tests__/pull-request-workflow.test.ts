@@ -1,5 +1,5 @@
 import {getInput, setOutput} from '@actions/core'
-import {PullRequestService} from '../src/pull-request-service'
+import {PullRequestWorkflow} from '../src/pull-request-workflow'
 
 jest.mock('@actions/core', () => ({
   setOutput: jest.fn(),
@@ -19,7 +19,7 @@ jest.mock('@actions/github', () => ({
 
 describe('welcome-message', () => {
   it('should print the context correctly', async () => {
-    await PullRequestService()
+    await PullRequestWorkflow()
     expect(setOutput).toBeCalledWith('action', 'my-action')
   })
 })
