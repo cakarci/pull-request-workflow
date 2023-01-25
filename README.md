@@ -4,7 +4,9 @@
 
 # Pull request workflow action
 
-Pull request workflow with for eyes principle
+A GitHub action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending Slack notifications for the whole process
+
+- It doesn't spam your Slack channel as all the notifications are sent as a thread reply for a specific PR
 
 ## Inputs
 
@@ -49,10 +51,13 @@ name: 'pull-request-workflow'
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, labeled, closed]
+    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled]
   pull_request_review:
-    types: [submitted]
+    types: [submitted, edited, dismissed]
   pull_request_review_comment:
+    types: [created, edited, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
 
 jobs:
   pull_request_workflow:
