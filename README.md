@@ -8,6 +8,13 @@ A GitHub action that creates a workflow for your pull request including the four
 
 - It doesn't spam your Slack channel as all the notifications are sent as a thread reply for a specific PR
 
+![Screenshot 2023-01-25 at 15 26 02](https://user-images.githubusercontent.com/4185569/214591195-1dc5223f-c08e-42e1-b572-1f8eb77eaf43.png)
+
+- Every events related to your pull request are added as a thread reply 
+
+![Screenshot 2023-01-25 at 15 26 25](https://user-images.githubusercontent.com/4185569/214591718-d3e19dbe-2603-4451-8fea-30576ec50993.png)
+
+
 ## Inputs
 
 ### `github-token`
