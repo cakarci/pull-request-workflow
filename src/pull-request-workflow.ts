@@ -2,10 +2,17 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {githubService} from './api/github'
 import {Slack} from './api/slack'
-import {generateSlackMessage, getFileContent, getRandomListItems} from './utils'
+import {
+  generatePullRequestLabeledMessage,
+  generatePullRequestMergedMessage,
+  generatePullRequestOpenedMessage,
+  generatePullRequestReviewSubmittedMessage,
+  getFileContent,
+  getRandomListItems
+} from './utils'
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 
-export const PullRequestService = async (): Promise<void> => {
+export const PullRequestWorkflow = async (): Promise<void> => {
   try {
     if (!github.context.eventName.startsWith('pull_request')) {
       core.warning(
@@ -13,10 +20,9 @@ export const PullRequestService = async (): Promise<void> => {
       )
       return
     }
-    core.setOutput('action', github.context.payload.action)
-    const {reviewers, slack} = await getFileContent()
+    const {githubUserNames, githubSlackUserMapper} = await getFileContent()
     const [firstReviewer, secondReviewer] = getRandomListItems(
-      reviewers,
+      githubUserNames,
       github.context.actor
     )
     if (
@@ -37,9 +43,9 @@ export const PullRequestService = async (): Promise<void> => {
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
         text: github.context.payload.pull_request?.id,
-        blocks: generateSlackMessage(
+        blocks: generatePullRequestOpenedMessage(
           github.context,
-          slack,
+          githubSlackUserMapper,
           firstReviewer,
           secondReviewer
         )
@@ -50,15 +56,10 @@ export const PullRequestService = async (): Promise<void> => {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: `A new label \`${github.context.payload.label?.name}\` added to <${github.context.payload.pull_request?.html_url}|the pull request>`
-              }
-            }
-          ]
+          blocks: generatePullRequestLabeledMessage(
+            github.context,
+            githubSlackUserMapper
+          )
         })
       }
       if (
@@ -68,23 +69,10 @@ export const PullRequestService = async (): Promise<void> => {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: `Hi <@${
-                  slack[github.context.payload.pull_request?.user.login]
-                }>, your <${
-                  github.context.payload.pull_request?.html_url
-                }|Pull Request> got reviewed by <@${
-                  slack[github.context.actor]
-                }>. \nCheck the <${
-                  github.context.payload.review?.html_url
-                }|Review>`
-              }
-            }
-          ]
+          blocks: generatePullRequestReviewSubmittedMessage(
+            github.context,
+            githubSlackUserMapper
+          )
         })
       }
       if (
@@ -95,21 +83,10 @@ export const PullRequestService = async (): Promise<void> => {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
-          blocks: [
-            {
-              type: 'section',
-              text: {
-                type: 'mrkdwn',
-                text: `Hi <@${
-                  slack[github.context.payload.pull_request?.user.login]
-                }>, your <${
-                  github.context.payload.pull_request?.html_url
-                }|Pull Request> got merged by <@${
-                  slack[github.context.actor]
-                }>.`
-              }
-            }
-          ]
+          blocks: generatePullRequestMergedMessage(
+            github.context,
+            githubSlackUserMapper
+          )
         })
       }
     }

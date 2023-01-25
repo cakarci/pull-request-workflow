@@ -1,6 +1,6 @@
-import {PullRequestService} from './pull-request-service'
+import {PullRequestWorkflow} from './pull-request-workflow'
 
 export async function run(): Promise<void> {
-  await PullRequestService()
+  await PullRequestWorkflow()
 }
 run()

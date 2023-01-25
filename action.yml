@@ -11,9 +11,6 @@ inputs:
   slack-channel-id:
     required: true
     description: 'Slack channel id for the notifications'
-outputs:
-  context:
-    description: 'Github context'
 runs:
   using: 'node16'
   main: 'dist/index.js'

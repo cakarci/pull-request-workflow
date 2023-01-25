@@ -1,6 +1,7 @@
 {
-  "reviewers": ["pcakarci", "scakarci", "cakarci"],
-  "slack": {
+  "teamName": "Consumer Experience",
+  "githubUserNames": ["pcakarci", "scakarci", "cakarci"],
+  "githubSlackUserMapper": {
     "pcakarci": "U04L1AQ8H8U",
     "scakarci": "U04LNHEVA48",
     "cakarci": "U035MNNF8LW"
