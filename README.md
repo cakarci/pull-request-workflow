@@ -4,7 +4,7 @@
 
 # Pull request workflow action
 
-A GitHub action that creates a workflow for your pull request including the four eyes principle for the code reviews and sending Slack notifications for the whole process
+A GitHub action that creates a workflow for your pull request for the code reviews and sending Slack notifications for the whole process
 
 
 - It automatically assigns 2 reviewers to your PR from the `githubUserNames` list you provide
