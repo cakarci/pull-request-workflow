@@ -14,6 +14,7 @@ export const postMessage = (slackClient: WebClient): PostMessage => {
     try {
       return await slackClient.chat.postMessage({
         channel,
+        unfurl_links: true,
         ...rest
       })
     } catch (error) {

@@ -35,8 +35,8 @@ export const PullRequestWorkflow = async (): Promise<void> => {
         return
       }
       await githubService.requestReviewers({
-        owner: github.context.actor,
-        repo: github.context.issue.repo,
+        owner: github.context.repo.owner,
+        repo: github.context.repo.repo,
         pull_number: github.context.payload.pull_request.number,
         reviewers: [firstReviewer, secondReviewer]
       })
