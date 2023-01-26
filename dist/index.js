@@ -335,7 +335,7 @@ const postMessage = (slackClient) => {
     return (_a) => __awaiter(void 0, void 0, void 0, function* () {
         var { channel } = _a, rest = __rest(_a, ["channel"]);
         try {
-            return yield slackClient.chat.postMessage(Object.assign({ channel }, rest));
+            return yield slackClient.chat.postMessage(Object.assign({ channel, unfurl_links: true }, rest));
         }
         catch (error) {
             return Promise.reject(error);
@@ -436,8 +436,8 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                 return;
             }
             yield github_1.githubService.requestReviewers({
-                owner: github.context.actor,
-                repo: github.context.issue.repo,
+                owner: github.context.repo.owner,
+                repo: github.context.repo.repo,
                 pull_number: github.context.payload.pull_request.number,
                 reviewers: [firstReviewer, secondReviewer]
             });
