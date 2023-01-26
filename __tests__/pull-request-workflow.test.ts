@@ -1,9 +1,9 @@
 import {PullRequestWorkflow} from '../src/pull-request-workflow'
-import {getFileContent, getRandomListItems} from '../src/utils'
+import {getFileContent, getRandomItemFromArray} from '../src/utils'
 
 jest.mock('../src/utils', () => ({
   getFileContent: jest.fn().mockResolvedValue(''),
-  getRandomListItems: jest.fn()
+  getRandomItemFromArray: jest.fn()
 }))
 
 jest.mock('@actions/github', () => {
@@ -22,6 +22,6 @@ describe('Pull request workflow', () => {
   it('should call getFileContent and getRandomListItems', async () => {
     await PullRequestWorkflow()
     expect(getFileContent).toHaveBeenCalled()
-    expect(getRandomListItems).toHaveBeenCalled()
+    expect(getRandomItemFromArray).toHaveBeenCalled()
   })
 })

@@ -3,46 +3,50 @@ import * as github from '@actions/github'
 import {githubService} from './api/github'
 import {Slack} from './api/slack'
 import {
+  generatePullRequestApprovedMessage,
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
   generatePullRequestReviewSubmittedMessage,
+  generateSecondReviewerMessage,
   getFileContent,
-  getRandomListItems
+  getRandomItemFromArray
 } from './utils'
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
   try {
-    if (!github.context.eventName.startsWith('pull_request')) {
+    const {actor, repo, eventName, payload} = github.context
+    if (!eventName.startsWith('pull_request')) {
       core.warning(
-        `eventName should be "pull_request*" but received: ${github.context.eventName} `
+        `eventName should be "pull_request*" but received: ${eventName} `
       )
       return
     }
     const {githubUserNames, githubSlackUserMapper} = await getFileContent()
-    const [firstReviewer, secondReviewer] = getRandomListItems(
-      githubUserNames,
-      github.context.actor
-    )
+    const firstReviewer = getRandomItemFromArray(githubUserNames, [actor])
+    const secondReviewer = getRandomItemFromArray(githubUserNames, [
+      actor,
+      firstReviewer
+    ])
     if (
-      github.context.payload.action === 'opened' &&
-      github.context.eventName === 'pull_request' &&
-      github.context.payload.pull_request
+      payload.action === 'opened' &&
+      eventName === 'pull_request' &&
+      payload.pull_request
     ) {
       const thread = await getPullRequestThread()
       if (thread) {
         return
       }
       await githubService.requestReviewers({
-        owner: github.context.repo.owner,
-        repo: github.context.repo.repo,
-        pull_number: github.context.payload.pull_request.number,
+        owner: repo.owner,
+        repo: repo.repo,
+        pull_number: payload.pull_request.number,
         reviewers: [firstReviewer, secondReviewer]
       })
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
-        text: github.context.payload.pull_request?.id,
+        text: payload.pull_request?.id,
         blocks: generatePullRequestOpenedMessage(
           github.context,
           githubSlackUserMapper,
@@ -52,7 +56,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       })
     } else {
       const thread = await getPullRequestThread()
-      if (github.context.payload.action === 'labeled') {
+      if (payload.action === 'labeled') {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
@@ -63,9 +67,15 @@ export const PullRequestWorkflow = async (): Promise<void> => {
         })
       }
       if (
-        github.context.eventName === 'pull_request_review' &&
-        github.context.payload.action === 'submitted'
+        eventName === 'pull_request_review' &&
+        payload.action === 'submitted'
       ) {
+        const reviewers = await githubService.getReviewers({
+          owner: repo.owner,
+          repo: repo.repo,
+          pull_number: payload.pull_request?.number as number
+        })
+        core.info(JSON.stringify(reviewers))
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
@@ -74,11 +84,30 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             githubSlackUserMapper
           )
         })
+        if (payload.review?.state === 'approved') {
+          await Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: thread?.ts,
+            blocks: generatePullRequestApprovedMessage(
+              github.context,
+              githubSlackUserMapper
+            )
+          })
+          await Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: thread?.ts,
+            blocks: generateSecondReviewerMessage(
+              github.context,
+              githubSlackUserMapper
+            )
+          })
+        }
       }
+
       if (
-        github.context.eventName === 'pull_request' &&
-        github.context.payload.action === 'closed' &&
-        github.context.payload.pull_request?.merged
+        eventName === 'pull_request' &&
+        payload.action === 'closed' &&
+        payload.pull_request?.merged
       ) {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
