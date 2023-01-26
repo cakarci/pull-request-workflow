@@ -3,12 +3,13 @@ import * as github from '@actions/github'
 import {githubService} from './api/github'
 import {Slack} from './api/slack'
 import {
+  generatePullRequestApprovedMessage,
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
   generatePullRequestReviewSubmittedMessage,
   getFileContent,
-  getRandomListItems
+  getRandomItemFromArray
 } from './utils'
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 
@@ -21,10 +22,14 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       return
     }
     const {githubUserNames, githubSlackUserMapper} = await getFileContent()
-    const [firstReviewer, secondReviewer] = getRandomListItems(
-      githubUserNames,
+    const firstReviewer = getRandomItemFromArray(githubUserNames, [
       github.context.actor
-    )
+    ])
+    const secondReviewer = getRandomItemFromArray(githubUserNames, [
+      github.context.actor,
+      firstReviewer
+    ])
+    core.info(JSON.stringify(github.context))
     if (
       github.context.payload.action === 'opened' &&
       github.context.eventName === 'pull_request' &&
@@ -69,10 +74,16 @@ export const PullRequestWorkflow = async (): Promise<void> => {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
-          blocks: generatePullRequestReviewSubmittedMessage(
-            github.context,
-            githubSlackUserMapper
-          )
+          blocks:
+            github.context.payload.review?.state === 'approved'
+              ? generatePullRequestApprovedMessage(
+                  github.context,
+                  githubSlackUserMapper
+                )
+              : generatePullRequestReviewSubmittedMessage(
+                  github.context,
+                  githubSlackUserMapper
+                )
         })
       }
       if (
