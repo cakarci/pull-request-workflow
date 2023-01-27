@@ -4,5 +4,5 @@ export const getUserToLog = (
 ): string => {
   return githubSlackUserMapper[githubUserName]
     ? `<@${githubSlackUserMapper[githubUserName]}>`
-    : `+*${githubUserName}**`
+    : `*${githubUserName}*`
 }
