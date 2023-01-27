@@ -1,6 +1,6 @@
 export const getRandomItemFromArray = (
   list: string[],
-  skip: string[]
+  skip: string[] = []
 ): string => {
   const newList = skip?.length
     ? list.filter(item => !skip.includes(item))

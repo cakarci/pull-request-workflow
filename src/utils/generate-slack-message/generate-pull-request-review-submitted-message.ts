@@ -49,13 +49,9 @@ export const generatePullRequestApprovedMessage = (
 
 export const generateSecondReviewerMessage = (
   githubContext: Context,
-  githubSlackUserMapper: Record<string, string>
+  githubSlackUserMapper: Record<string, string>,
+  secondReviewer: string
 ): (KnownBlock | Block)[] => {
-  const {pull_request} = githubContext.payload
-  const secondReviewer = getRandomItemFromArray(
-    pull_request?.requested_reviewers.map((r: {login: string}) => r.login),
-    [githubContext.actor]
-  )
   return [
     {
       type: 'section',
