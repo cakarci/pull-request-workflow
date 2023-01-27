@@ -18,10 +18,10 @@ export const generatePullRequestOpenedMessage = (
   const pullRequestTitle = `<${pull_request?.html_url}|${pull_request?.title}>`
   return [
     {
-      type: 'header',
+      type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `:boom: New Pull Request ${pullRequestTitle} is submitted`
+        text: `:boom: *New Pull Request ${pullRequestTitle} is submitted*`
       }
     },
     {
@@ -31,7 +31,7 @@ export const generatePullRequestOpenedMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `:hourglass_flowing_sand: It is time to add your reviews <${pull_request?.html_url}/files|here> `
+        text: `:hourglass_flowing_sand: It is time to add your reviews <${pull_request?.html_url}/files|here>`
       }
     },
     {

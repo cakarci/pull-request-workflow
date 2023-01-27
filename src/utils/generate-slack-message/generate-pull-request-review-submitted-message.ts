@@ -1,6 +1,5 @@
 import {Context} from '@actions/github/lib/context'
 import {Block, KnownBlock} from '@slack/types'
-import {getRandomItemFromArray} from '../get-random-item-from-array'
 import {getUserToLog} from '../get-user-to-log'
 
 export const generatePullRequestReviewSubmittedMessage = (
@@ -21,41 +20,24 @@ export const generatePullRequestReviewSubmittedMessage = (
           githubContext.actor
         )}`
       }
-    }
-  ]
-}
-
-export const generatePullRequestApprovedMessage = (
-  githubContext: Context,
-  githubSlackUserMapper: Record<string, string>
-): (KnownBlock | Block)[] => {
-  const {pull_request} = githubContext.payload
-  return [
+    },
     {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: `Hi ${getUserToLog(
-          githubSlackUserMapper,
-          pull_request?.user.login
-        )} :wave: your pull request is approved :white_check_mark: by ${getUserToLog(
-          githubSlackUserMapper,
-          githubContext.actor
-        )}`
-      }
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `*Review State:* ${(review?.state).toUpperCase()}`
+        }
+      ]
     }
   ]
 }
 
 export const generateSecondReviewerMessage = (
   githubContext: Context,
-  githubSlackUserMapper: Record<string, string>
+  githubSlackUserMapper: Record<string, string>,
+  secondReviewer: string
 ): (KnownBlock | Block)[] => {
-  const {pull_request} = githubContext.payload
-  const secondReviewer = getRandomItemFromArray(
-    pull_request?.requested_reviewers.map((r: {login: string}) => r.login),
-    [githubContext.actor]
-  )
   return [
     {
       type: 'section',
@@ -64,22 +46,17 @@ export const generateSecondReviewerMessage = (
         text: `Hi ${getUserToLog(
           githubSlackUserMapper,
           secondReviewer
-        )} :wave: you are assigned as a *Second Code Reviewer*,`
+        )} :wave: you are assigned as a *second code reviewer*,`
       }
     },
     {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: '• Please ensure all the review comments from the  *First Code Reviewer* have been addressed properly \n • If required, please add your own review comments as well'
-      }
-    },
-    {
-      type: 'section',
-      text: {
-        type: 'mrkdwn',
-        text: 'Happy code reviews :tada:'
-      }
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `• Please ensure all the review comments from the  *first code reviewer* have been addressed properly \n• If required, please add your own review comments as well \nHappy code reviews :tada:`
+        }
+      ]
     }
   ]
 }

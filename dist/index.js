@@ -81,11 +81,12 @@ exports.getReviewers = void 0;
 const getReviewers = (octokit) => {
     return ({ owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
         try {
-            return yield octokit.rest.pulls.listReviews({
+            const { data } = yield octokit.rest.pulls.listReviews({
                 owner,
                 repo,
                 pull_number
             });
+            return data;
         }
         catch (error) {
             return Promise.reject(error);
@@ -478,11 +479,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.PullRequestWorkflow = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const github_1 = __nccwpck_require__(3273);
 const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     try {
         const { actor, repo, eventName, payload } = github.context;
         if (!eventName.startsWith('pull_request')) {
@@ -490,11 +490,6 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const { githubUserNames, githubSlackUserMapper } = yield (0, utils_1.getFileContent)();
-        const firstReviewer = (0, utils_1.getRandomItemFromArray)(githubUserNames, [actor]);
-        const secondReviewer = (0, utils_1.getRandomItemFromArray)(githubUserNames, [
-            actor,
-            firstReviewer
-        ]);
         if (payload.action === 'opened' &&
             eventName === 'pull_request' &&
             payload.pull_request) {
@@ -502,11 +497,10 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             if (thread) {
                 return;
             }
-            yield github_1.githubService.requestReviewers({
+            const [firstReviewer, secondReviewer] = yield (0, utils_1.requestTwoReviewers)([actor], githubUserNames, {
                 owner: repo.owner,
                 repo: repo.repo,
-                pull_number: payload.pull_request.number,
-                reviewers: [firstReviewer, secondReviewer]
+                pull_number: payload.pull_request.number
             });
             yield slack_1.Slack.postMessage({
                 channel: core.getInput('slack-channel-id'),
@@ -524,34 +518,49 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                 });
             }
             if (eventName === 'pull_request_review' &&
-                payload.action === 'submitted') {
-                const reviewers = yield github_1.githubService.getReviewers({
-                    owner: repo.owner,
-                    repo: repo.repo,
-                    pull_number: (_b = payload.pull_request) === null || _b === void 0 ? void 0 : _b.number
-                });
-                core.info(JSON.stringify(reviewers));
+                payload.action === 'submitted' &&
+                payload.pull_request) {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                     blocks: (0, utils_1.generatePullRequestReviewSubmittedMessage)(github.context, githubSlackUserMapper)
                 });
-                if (((_c = payload.review) === null || _c === void 0 ? void 0 : _c.state) === 'approved') {
-                    yield slack_1.Slack.postMessage({
-                        channel: core.getInput('slack-channel-id'),
-                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                        blocks: (0, utils_1.generatePullRequestApprovedMessage)(github.context, githubSlackUserMapper)
-                    });
-                    yield slack_1.Slack.postMessage({
-                        channel: core.getInput('slack-channel-id'),
-                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                        blocks: (0, utils_1.generateSecondReviewerMessage)(github.context, githubSlackUserMapper)
-                    });
+                const { approvers, secondApprovers, changesRequesters, commenters } = yield (0, utils_1.getPrApprovalStates)({
+                    prAuthor: (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.user.login,
+                    githubUserNames,
+                    requestedReviewers: payload.pull_request.requested_reviewers.map((r) => r.login),
+                    commit_id: payload.review.commit_id
+                }, {
+                    owner: repo.owner,
+                    repo: repo.repo,
+                    pull_number: (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.number
+                });
+                core.info(JSON.stringify({
+                    approvers,
+                    secondApprovers,
+                    changesRequesters,
+                    commenters
+                }));
+                if (((_d = payload.review) === null || _d === void 0 ? void 0 : _d.state) === 'approved') {
+                    if (approvers.length === 1) {
+                        yield slack_1.Slack.postMessage({
+                            channel: core.getInput('slack-channel-id'),
+                            thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                            blocks: (0, utils_1.generateSecondReviewerMessage)(github.context, githubSlackUserMapper, (0, utils_1.getRandomItemFromArray)(secondApprovers))
+                        });
+                    }
+                    if (approvers.length >= 2) {
+                        yield slack_1.Slack.postMessage({
+                            channel: core.getInput('slack-channel-id'),
+                            thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                            blocks: (0, utils_1.generateReadyToMergeMessage)(github.context, githubSlackUserMapper)
+                        });
+                    }
                 }
             }
             if (eventName === 'pull_request' &&
                 payload.action === 'closed' &&
-                ((_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.merged)) {
+                ((_e = payload.pull_request) === null || _e === void 0 ? void 0 : _e.merged)) {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
@@ -567,11 +576,11 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.PullRequestWorkflow = PullRequestWorkflow;
 const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _e;
+    var _f;
     const history = yield slack_1.Slack.conversationsHistory({
         channel: core.getInput('slack-channel-id')
     });
-    return (_e = history.messages) === null || _e === void 0 ? void 0 : _e.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
+    return (_f = history.messages) === null || _f === void 0 ? void 0 : _f.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
 });
 
 
@@ -646,10 +655,10 @@ const generatePullRequestOpenedMessage = (githubContext, githubSlackUserMapper, 
     const pullRequestTitle = `<${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|${pull_request === null || pull_request === void 0 ? void 0 : pull_request.title}>`;
     return [
         {
-            type: 'header',
+            type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `:boom: New Pull Request ${pullRequestTitle} is submitted`
+                text: `:boom: *New Pull Request ${pullRequestTitle} is submitted*`
             }
         },
         {
@@ -659,7 +668,7 @@ const generatePullRequestOpenedMessage = (githubContext, githubSlackUserMapper, 
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `:hourglass_flowing_sand: It is time to add your reviews <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}/files|here> `
+                text: `:hourglass_flowing_sand: It is time to add your reviews <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}/files|here>`
             }
         },
         {
@@ -687,8 +696,7 @@ exports.generatePullRequestOpenedMessage = generatePullRequestOpenedMessage;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateSecondReviewerMessage = exports.generatePullRequestApprovedMessage = exports.generatePullRequestReviewSubmittedMessage = void 0;
-const get_random_item_from_array_1 = __nccwpck_require__(7613);
+exports.generateSecondReviewerMessage = exports.generatePullRequestReviewSubmittedMessage = void 0;
 const get_user_to_log_1 = __nccwpck_require__(3070);
 const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUserMapper) => {
     const { pull_request, review } = githubContext.payload;
@@ -699,51 +707,65 @@ const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUse
                 type: 'mrkdwn',
                 text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, pull_request === null || pull_request === void 0 ? void 0 : pull_request.user.login)}, a new <${review === null || review === void 0 ? void 0 : review.html_url}|review comment> added by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}`
             }
+        },
+        {
+            type: 'context',
+            elements: [
+                {
+                    type: 'mrkdwn',
+                    text: `*Review State:* ${(review === null || review === void 0 ? void 0 : review.state).toUpperCase()}`
+                }
+            ]
         }
     ];
 };
 exports.generatePullRequestReviewSubmittedMessage = generatePullRequestReviewSubmittedMessage;
-const generatePullRequestApprovedMessage = (githubContext, githubSlackUserMapper) => {
-    const { pull_request } = githubContext.payload;
+const generateSecondReviewerMessage = (githubContext, githubSlackUserMapper, secondReviewer) => {
     return [
         {
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, pull_request === null || pull_request === void 0 ? void 0 : pull_request.user.login)} :wave: your pull request is approved :white_check_mark: by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}`
-            }
-        }
-    ];
-};
-exports.generatePullRequestApprovedMessage = generatePullRequestApprovedMessage;
-const generateSecondReviewerMessage = (githubContext, githubSlackUserMapper) => {
-    const { pull_request } = githubContext.payload;
-    const secondReviewer = (0, get_random_item_from_array_1.getRandomItemFromArray)(pull_request === null || pull_request === void 0 ? void 0 : pull_request.requested_reviewers.map((r) => r.login), [githubContext.actor]);
-    return [
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, secondReviewer)} :wave: you are assigned as a *Second Code Reviewer*,`
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, secondReviewer)} :wave: you are assigned as a *second code reviewer*,`
             }
         },
         {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: '• Please ensure all the review comments from the  *First Code Reviewer* have been addressed properly \n • If required, please add your own review comments as well'
-            }
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: 'Happy code reviews :tada:'
-            }
+            type: 'context',
+            elements: [
+                {
+                    type: 'mrkdwn',
+                    text: `• Please ensure all the review comments from the  *first code reviewer* have been addressed properly \n• If required, please add your own review comments as well \nHappy code reviews :tada:`
+                }
+            ]
         }
     ];
 };
 exports.generateSecondReviewerMessage = generateSecondReviewerMessage;
+
+
+/***/ }),
+
+/***/ 9506:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateReadyToMergeMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generateReadyToMergeMessage = (githubContext, githubSlackUserMapper) => {
+    const { pull_request } = githubContext.payload;
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, pull_request === null || pull_request === void 0 ? void 0 : pull_request.user.login)} :wave: your <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request>  ready to be merged :rocket:`
+            }
+        }
+    ];
+};
+exports.generateReadyToMergeMessage = generateReadyToMergeMessage;
 
 
 /***/ }),
@@ -772,6 +794,7 @@ __exportStar(__nccwpck_require__(6959), exports);
 __exportStar(__nccwpck_require__(6202), exports);
 __exportStar(__nccwpck_require__(9869), exports);
 __exportStar(__nccwpck_require__(4946), exports);
+__exportStar(__nccwpck_require__(9506), exports);
 
 
 /***/ }),
@@ -843,6 +866,127 @@ __exportStar(__nccwpck_require__(7363), exports);
 
 /***/ }),
 
+/***/ 3860:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getPrApprovalStates = void 0;
+const github_1 = __nccwpck_require__(3273);
+const core = __importStar(__nccwpck_require__(2186));
+const request_two_reviewers_1 = __nccwpck_require__(7197);
+const getPrApprovalStates = ({ prAuthor, githubUserNames, requestedReviewers, commit_id }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
+    const reviewers = yield github_1.githubService.getReviewers({
+        owner,
+        repo,
+        pull_number
+    });
+    const revs = reviewers
+        .filter(r => r.commit_id === commit_id)
+        .map(r => { var _a; return (_a = r === null || r === void 0 ? void 0 : r.user) === null || _a === void 0 ? void 0 : _a.login; });
+    const isLastReviewFromUser = (user, state) => {
+        var _a;
+        return (((_a = [...reviewers]
+            .filter(r => { var _a; return ((_a = r === null || r === void 0 ? void 0 : r.user) === null || _a === void 0 ? void 0 : _a.login) === user; })
+            .filter(r => r.commit_id === commit_id)
+            .pop()) === null || _a === void 0 ? void 0 : _a.state) === state);
+    };
+    const approvers = [];
+    const commenters = [];
+    const changesRequesters = [];
+    for (const rev of revs) {
+        if (isLastReviewFromUser(rev, 'APPROVED')) {
+            !approvers.includes(rev) && approvers.push(rev);
+        }
+        if (isLastReviewFromUser(rev, 'COMMENTED')) {
+            !commenters.includes(rev) && commenters.push(rev);
+        }
+        if (isLastReviewFromUser(rev, 'CHANGES_REQUESTED')) {
+            !changesRequesters.includes(rev) && changesRequesters.push(rev);
+        }
+    }
+    core.info(JSON.stringify({
+        reviewers
+    }));
+    if (requestedReviewers.length === 0 && approvers.length < 2) {
+        requestedReviewers = yield (0, request_two_reviewers_1.requestTwoReviewers)([prAuthor, ...approvers, ...commenters, ...changesRequesters], githubUserNames, {
+            owner,
+            repo,
+            pull_number
+        });
+    }
+    return {
+        approvers,
+        secondApprovers: [
+            ...new Set([...requestedReviewers, ...commenters, ...changesRequesters])
+        ],
+        changesRequesters,
+        commenters
+    };
+});
+exports.getPrApprovalStates = getPrApprovalStates;
+
+
+/***/ }),
+
+/***/ 5593:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(3860), exports);
+
+
+/***/ }),
+
 /***/ 8557:
 /***/ ((__unused_webpack_module, exports) => {
 
@@ -850,7 +994,7 @@ __exportStar(__nccwpck_require__(7363), exports);
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getRandomItemFromArray = void 0;
-const getRandomItemFromArray = (list, skip) => {
+const getRandomItemFromArray = (list, skip = []) => {
     const newList = (skip === null || skip === void 0 ? void 0 : skip.length)
         ? list.filter(item => !skip.includes(item))
         : list;
@@ -897,7 +1041,7 @@ exports.getUserToLog = void 0;
 const getUserToLog = (githubSlackUserMapper, githubUserName) => {
     return githubSlackUserMapper[githubUserName]
         ? `<@${githubSlackUserMapper[githubUserName]}>`
-        : `+*${githubUserName}**`;
+        : `*${githubUserName}*`;
 };
 exports.getUserToLog = getUserToLog;
 
@@ -953,6 +1097,75 @@ __exportStar(__nccwpck_require__(605), exports);
 __exportStar(__nccwpck_require__(7613), exports);
 __exportStar(__nccwpck_require__(2184), exports);
 __exportStar(__nccwpck_require__(3070), exports);
+__exportStar(__nccwpck_require__(5593), exports);
+__exportStar(__nccwpck_require__(7197), exports);
+
+
+/***/ }),
+
+/***/ 7197:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(7180), exports);
+
+
+/***/ }),
+
+/***/ 7180:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.requestTwoReviewers = void 0;
+const get_random_item_from_array_1 = __nccwpck_require__(7613);
+const github_1 = __nccwpck_require__(3273);
+const requestTwoReviewers = (skip, githubUserNames, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
+    const firstReviewer = (0, get_random_item_from_array_1.getRandomItemFromArray)(githubUserNames, skip);
+    const secondReviewer = (0, get_random_item_from_array_1.getRandomItemFromArray)(githubUserNames, [
+        ...skip,
+        firstReviewer
+    ]);
+    if (!firstReviewer) {
+        return [];
+    }
+    yield github_1.githubService.requestReviewers({
+        owner,
+        repo,
+        pull_number,
+        reviewers: secondReviewer
+            ? [firstReviewer, secondReviewer]
+            : [firstReviewer]
+    });
+    return [firstReviewer, secondReviewer];
+});
+exports.requestTwoReviewers = requestTwoReviewers;
 
 
 /***/ }),

@@ -1,16 +1,17 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {githubService} from './api/github'
 import {Slack} from './api/slack'
 import {
-  generatePullRequestApprovedMessage,
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
   generatePullRequestReviewSubmittedMessage,
+  generateReadyToMergeMessage,
   generateSecondReviewerMessage,
   getFileContent,
-  getRandomItemFromArray
+  getPrApprovalStates,
+  getRandomItemFromArray,
+  requestTwoReviewers
 } from './utils'
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 
@@ -24,11 +25,6 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       return
     }
     const {githubUserNames, githubSlackUserMapper} = await getFileContent()
-    const firstReviewer = getRandomItemFromArray(githubUserNames, [actor])
-    const secondReviewer = getRandomItemFromArray(githubUserNames, [
-      actor,
-      firstReviewer
-    ])
     if (
       payload.action === 'opened' &&
       eventName === 'pull_request' &&
@@ -38,12 +34,15 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       if (thread) {
         return
       }
-      await githubService.requestReviewers({
-        owner: repo.owner,
-        repo: repo.repo,
-        pull_number: payload.pull_request.number,
-        reviewers: [firstReviewer, secondReviewer]
-      })
+      const [firstReviewer, secondReviewer] = await requestTwoReviewers(
+        [actor],
+        githubUserNames,
+        {
+          owner: repo.owner,
+          repo: repo.repo,
+          pull_number: payload.pull_request.number
+        }
+      )
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
         text: payload.pull_request?.id,
@@ -68,14 +67,9 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       }
       if (
         eventName === 'pull_request_review' &&
-        payload.action === 'submitted'
+        payload.action === 'submitted' &&
+        payload.pull_request
       ) {
-        const reviewers = await githubService.getReviewers({
-          owner: repo.owner,
-          repo: repo.repo,
-          pull_number: payload.pull_request?.number as number
-        })
-        core.info(JSON.stringify(reviewers))
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
@@ -84,23 +78,55 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             githubSlackUserMapper
           )
         })
+        const {approvers, secondApprovers, changesRequesters, commenters} =
+          await getPrApprovalStates(
+            {
+              prAuthor: github.context.payload.pull_request?.user.login,
+              githubUserNames,
+              requestedReviewers: payload.pull_request.requested_reviewers.map(
+                (r: {login: never}) => r.login
+              ),
+              commit_id: payload.review.commit_id
+            },
+            {
+              owner: repo.owner,
+              repo: repo.repo,
+              pull_number: payload.pull_request?.number
+            }
+          )
+
+        core.info(
+          JSON.stringify({
+            approvers,
+            secondApprovers,
+            changesRequesters,
+            commenters
+          })
+        )
+
         if (payload.review?.state === 'approved') {
-          await Slack.postMessage({
-            channel: core.getInput('slack-channel-id'),
-            thread_ts: thread?.ts,
-            blocks: generatePullRequestApprovedMessage(
-              github.context,
-              githubSlackUserMapper
-            )
-          })
-          await Slack.postMessage({
-            channel: core.getInput('slack-channel-id'),
-            thread_ts: thread?.ts,
-            blocks: generateSecondReviewerMessage(
-              github.context,
-              githubSlackUserMapper
-            )
-          })
+          if (approvers.length === 1) {
+            await Slack.postMessage({
+              channel: core.getInput('slack-channel-id'),
+              thread_ts: thread?.ts,
+              blocks: generateSecondReviewerMessage(
+                github.context,
+                githubSlackUserMapper,
+                getRandomItemFromArray(secondApprovers)
+              )
+            })
+          }
+
+          if (approvers.length >= 2) {
+            await Slack.postMessage({
+              channel: core.getInput('slack-channel-id'),
+              thread_ts: thread?.ts,
+              blocks: generateReadyToMergeMessage(
+                github.context,
+                githubSlackUserMapper
+              )
+            })
+          }
         }
       }
 

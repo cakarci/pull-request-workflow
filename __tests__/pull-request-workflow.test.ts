@@ -1,9 +1,8 @@
 import {PullRequestWorkflow} from '../src/pull-request-workflow'
-import {getFileContent, getRandomItemFromArray} from '../src/utils'
+import {getFileContent} from '../src/utils'
 
 jest.mock('../src/utils', () => ({
-  getFileContent: jest.fn().mockResolvedValue(''),
-  getRandomItemFromArray: jest.fn()
+  getFileContent: jest.fn().mockResolvedValue('')
 }))
 
 jest.mock('@actions/github', () => {
@@ -11,7 +10,10 @@ jest.mock('@actions/github', () => {
     getOctokit: jest.fn(),
     context: {
       payload: {
-        action: 'my-action'
+        action: 'opened',
+        pull_request: {
+          number: 20
+        }
       },
       eventName: 'pull_request'
     }
@@ -19,9 +21,8 @@ jest.mock('@actions/github', () => {
 })
 
 describe('Pull request workflow', () => {
-  it('should call getFileContent and getRandomListItems', async () => {
+  it('should call getFileContent', async () => {
     await PullRequestWorkflow()
     expect(getFileContent).toHaveBeenCalled()
-    expect(getRandomItemFromArray).toHaveBeenCalled()
   })
 })
