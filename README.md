@@ -1,6 +1,4 @@
-[![build-test-release](https://github.com/cakarci/pull-request-workflow/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/build-test-release.yml)  
-[![check-dist](https://github.com/cakarci/pull-request-workflow/actions/workflows/check-dist.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/check-dist.yml)  
-[![pull-request-workflow](https://github.com/cakarci/pull-request-workflow/actions/workflows/pull-request-workflow.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/pull-request-workflow.yml)
+[![build-test-release](https://github.com/cakarci/pull-request-workflow/actions/workflows/build-test-release.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/build-test-release.yml)  [![check-dist](https://github.com/cakarci/pull-request-workflow/actions/workflows/check-dist.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/check-dist.yml)  [![pull-request-workflow](https://github.com/cakarci/pull-request-workflow/actions/workflows/pull-request-workflow.yml/badge.svg)](https://github.com/cakarci/pull-request-workflow/actions/workflows/pull-request-workflow.yml)
 
 # Pull request workflow with 4 eyes principle action
 
@@ -14,6 +12,8 @@ A GitHub action that creates a workflow with ***four eyes principle***
 - After the feedback provided by the ***first code reviewer***, a slack notification is sent to the ***second code reviewer***
   - ***Second code reviewer*** ensures all the review comments from the ***first code reviewer*** have been addressed properly
   - If required, adds review comments as well
+- After the ***second code reviewer***'s approval, a Slack notification is sent to the ***PR Author***
+- If there is no change requested then the PR is ready to be merged :rocket:
 - It keeps your Slack channel as clean as possible as notifications related to a specific PR starts a thread and all the related activities of the pull request are sent as a thread reply [Check it here](https://user-images.githubusercontent.com/4185569/214591718-d3e19dbe-2603-4451-8fea-30576ec50993.png)
 
 ![Screenshot 2023-01-25 at 15 26 02](https://user-images.githubusercontent.com/4185569/214591195-1dc5223f-c08e-42e1-b572-1f8eb77eaf43.png)
@@ -47,46 +47,45 @@ with:
 ## How to use it step by step
 
 - Create `pull-request-workflow.yml` file with the following content under `./github/workflows`
+```yaml
+name: 'pull-request-workflow'
 
-  - ```yaml  
-		name: 'pull-request-workflow'  
-		  
-		on:  
-		  pull_request:  
-		    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled]  
-		  pull_request_review:  
-		    types: [submitted, edited, dismissed]  
-		  pull_request_review_comment:  
-		    types: [created, edited, deleted]  
-		  issue_comment:  
-		    types: [created, edited, deleted]  
-		  
-		jobs:  
-		  pull_request_workflow:  
-		    runs-on: ubuntu-latest  
-		    name: A job that notifies slack on PR events  
-		    steps:  
-		      - name: Checkout  
-		        uses: actions/checkout@v3  
-		      - name: Run pull request workflow  
-		        uses: cakarci/pull-request-workflow@v1  
-		        with:  
-		          github-token: ${{ secrets.GH_TOKEN }}  
-		          slack-token: ${{ secrets.SLACK_BOT_TOKEN }}  
-		          slack-channel-id: '{Your public slack channel id}'  
-		```  
+on:
+  pull_request:
+    types: [assigned, unassigned, labeled, unlabeled, opened, edited, closed, reopened, synchronize, converted_to_draft, ready_for_review, locked, unlocked, review_requested, review_request_removed, auto_merge_enabled, auto_merge_disabled]
+  pull_request_review:
+    types: [submitted, edited, dismissed]
+  pull_request_review_comment:
+    types: [created, edited, deleted]
+  issue_comment:
+    types: [created, edited, deleted]
+
+jobs:
+  pull_request_workflow:
+    runs-on: ubuntu-latest
+    name: A job that notifies slack on PR events
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Run pull request workflow
+        uses: cakarci/pull-request-workflow@v1
+        with:
+          github-token: ${{ secrets.GH_TOKEN }}
+          slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
+          slack-channel-id: '{Your public slack channel id}'
+```
 - Create `pull-request-workflow.json` file with the following content under `./github` folder
   - ```json  
-		{  
-			  "teamName": "Consumer Experience",  
-			  "githubUserNames": ["pcakarci", "scakarci", "cakarci"],  
-			  "githubSlackUserMapper": {  
-			    "pcakarci": "U04L1AQ8H8U",  
-			    "scakarci": "U04LNHEVA48",  
-			    "cakarci": "U035MNNF8LW"  
-			  }  
-		}  
-		```  
+	{  
+	  "teamName": "Consumer Experience",  
+	  "githubUserNames": ["pcakarci", "scakarci", "cakarci"],  
+	  "githubSlackUserMapper": {  
+	    "pcakarci": "U04L1AQ8H8U",  
+	    "scakarci": "U04LNHEVA48",  
+	    "cakarci": "U035MNNF8LW"  
+	  }  
+	}  
+     ```  
   - `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
   - All the users defined in the `githubUserNames` list should have read/write access to the repository
 
@@ -102,9 +101,7 @@ with:
     - Create a [Personal Access Token](https://docs.github.com/en/enterprise-server@3.4/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token#creating-a-personal-access-token)
     - Add the GitHub personal access token scopes like in this [image](https://user-images.githubusercontent.com/4185569/214594384-23868a6b-e6d1-4119-b9bd-a2d5c20e3bfd.png)
     - Add it to your repository secret as `GH_TOKEN`
-
-
-10. To test the workflow run, create a PR in your repository and check if the notifications are sent to your public Slack channel :boom:
+- To test the workflow run, create a PR in your repository and check if the notifications are sent to your public Slack channel :boom:
 
 
 Developed with ❤️ by [Salih Cakarci](https://github.com/cakarci)
