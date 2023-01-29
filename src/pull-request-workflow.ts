@@ -85,8 +85,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
               githubUserNames,
               requestedReviewers: payload.pull_request.requested_reviewers.map(
                 (r: {login: never}) => r.login
-              ),
-              commit_id: payload.review.commit_id
+              )
             },
             {
               owner: repo.owner,
@@ -96,7 +95,11 @@ export const PullRequestWorkflow = async (): Promise<void> => {
           )
 
         core.info(
-          JSON.stringify({approvers, changeRequesters, secondApprovers})
+          JSON.stringify({
+            approvers,
+            changeRequesters,
+            secondApprovers
+          })
         )
 
         if (payload.review?.state === 'approved') {
@@ -112,7 +115,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             })
           }
 
-          if (approvers.length >= 2) {
+          if (approvers.length >= 2 && changeRequesters.length === 0) {
             await Slack.postMessage({
               channel: core.getInput('slack-channel-id'),
               thread_ts: thread?.ts,

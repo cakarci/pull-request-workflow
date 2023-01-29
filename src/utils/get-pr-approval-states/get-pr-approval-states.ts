@@ -1,5 +1,4 @@
 import {githubService} from '../../api/github'
-import * as core from '@actions/core'
 import {requestTwoReviewers} from '../request-two-reviewers'
 import {components} from '@octokit/openapi-types'
 
@@ -14,12 +13,11 @@ export const getPrApprovalStates = async (
     prAuthor: string
     githubUserNames: string[]
     requestedReviewers: string[]
-    commit_id: string
   },
   {owner, repo, pull_number}: {owner: string; repo: string; pull_number: number}
 ): Promise<{
-  approvers: string[]
   secondApprovers: string[]
+  approvers: string[]
   changeRequesters: string[]
 }> => {
   const reviews = await githubService.getReviews({
@@ -28,37 +26,13 @@ export const getPrApprovalStates = async (
     pull_number
   })
 
-  core.info(
-    JSON.stringify({
-      AllReviews: reviews
-    })
-  )
-
-  core.info(
-    JSON.stringify({
-      requestedReviewers
-    })
-  )
-
   const reviewersWithState = getReviewers(reviews)
-  const latestReviewOfUsers = getLatestReviewOfUsers(reviewersWithState)
-
-  core.info(
-    JSON.stringify({
-      latestReviewOfUsers
-    })
-  )
-  const approvers = Object.values(latestReviewOfUsers).filter(
-    s => s === 'APPROVED'
-  )
-
-  const changeRequesters = Object.values(latestReviewOfUsers).filter(
-    s => s === 'CHANGES_REQUESTED'
-  )
+  const {approvers, changeRequesters} =
+    getLatestReviewOfUsers(reviewersWithState)
 
   if (requestedReviewers.length === 0 && approvers.length < 2) {
     requestedReviewers = await requestTwoReviewers(
-      [prAuthor, ...Object.keys(latestReviewOfUsers)],
+      [prAuthor, ...approvers, ...changeRequesters],
       githubUserNames,
       {
         owner,
@@ -69,9 +43,7 @@ export const getPrApprovalStates = async (
   }
 
   return {
-    secondApprovers: [
-      ...new Set([...requestedReviewers, ...Object.keys(latestReviewOfUsers)])
-    ],
+    secondApprovers: [...new Set([...requestedReviewers, ...changeRequesters])],
     approvers,
     changeRequesters
   }
@@ -88,15 +60,30 @@ const getReviewers = (
 
 const getLatestReviewOfUsers = (
   reviews: UserWithState[]
-): Record<string, State> => {
-  return reviews.reduce((acc, curr) => {
-    const latestReviewOfUser = reviews
+): {
+  approvers: string[]
+  changeRequesters: string[]
+} => {
+  const getLatestReviewOfUser = (user: string): UserWithState | undefined =>
+    reviews
       .filter(r => r.state !== 'COMMENTED')
-      .filter(r => r.user === curr.user)
+      .filter(r => r.user === user)
       .pop()
-    return {
-      ...acc,
-      [curr.user]: latestReviewOfUser?.state
+  const approvers: string[] = []
+  const changeRequesters: string[] = []
+  for (const review of reviews) {
+    const latestReview = getLatestReviewOfUser(review.user)
+    if (latestReview?.state === 'APPROVED') {
+      !approvers.includes(latestReview.user) &&
+        approvers.push(latestReview.user)
     }
-  }, {})
+    if (latestReview?.state === 'CHANGES_REQUESTED') {
+      !changeRequesters.includes(latestReview.user) &&
+        changeRequesters.push(latestReview.user)
+    }
+  }
+  return {
+    approvers,
+    changeRequesters
+  }
 }
