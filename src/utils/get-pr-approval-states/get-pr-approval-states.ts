@@ -11,14 +11,12 @@ export const getPrApprovalStates = async (
     prAuthor,
     githubUserNames,
     requestedReviewers,
-    commit_id,
-    currentUserWithState
+    commit_id
   }: {
     prAuthor: string
     githubUserNames: string[]
     requestedReviewers: string[]
     commit_id: string
-    currentUserWithState: UserWithState
   },
   {owner, repo, pull_number}: {owner: string; repo: string; pull_number: number}
 ): Promise<StateUsersMap & {SECOND_APPROVERS: string[]}> => {
@@ -76,23 +74,13 @@ export const getPrApprovalStates = async (
     )
   }
 
-  const approved =
-    currentUserWithState.state === 'APPROVED'
-      ? [...APPROVED, currentUserWithState.user]
-      : APPROVED
-
-  const changesRequested =
-    currentUserWithState.state === 'CHANGES_REQUESTED'
-      ? [...CHANGES_REQUESTED, currentUserWithState.user]
-      : CHANGES_REQUESTED
-
   return {
     SECOND_APPROVERS: [
-      ...new Set([...requestedReviewers, ...COMMENTED, ...changesRequested])
+      ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
     ],
-    APPROVED: approved,
+    APPROVED,
     COMMENTED,
-    CHANGES_REQUESTED: changesRequested
+    CHANGES_REQUESTED
   }
 }
 

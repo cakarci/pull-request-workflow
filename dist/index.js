@@ -482,7 +482,7 @@ const github = __importStar(__nccwpck_require__(5438));
 const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e;
     try {
         const { actor, repo, eventName, payload } = github.context;
         if (!eventName.startsWith('pull_request')) {
@@ -529,15 +529,11 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     prAuthor: (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.user.login,
                     githubUserNames,
                     requestedReviewers: payload.pull_request.requested_reviewers.map((r) => r.login),
-                    commit_id: payload.review.commit_id,
-                    currentUserWithState: {
-                        user: github.context.actor,
-                        state: (_c = payload.review) === null || _c === void 0 ? void 0 : _c.state.toUpperCase()
-                    }
+                    commit_id: payload.review.commit_id
                 }, {
                     owner: repo.owner,
                     repo: repo.repo,
-                    pull_number: (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.number
+                    pull_number: (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.number
                 });
                 core.info(JSON.stringify({
                     APPROVED,
@@ -545,7 +541,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     CHANGES_REQUESTED,
                     SECOND_APPROVERS
                 }));
-                if (((_e = payload.review) === null || _e === void 0 ? void 0 : _e.state) === 'approved') {
+                if (((_d = payload.review) === null || _d === void 0 ? void 0 : _d.state) === 'approved') {
                     if (APPROVED.length === 1) {
                         yield slack_1.Slack.postMessage({
                             channel: core.getInput('slack-channel-id'),
@@ -564,7 +560,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             }
             if (eventName === 'pull_request' &&
                 payload.action === 'closed' &&
-                ((_f = payload.pull_request) === null || _f === void 0 ? void 0 : _f.merged)) {
+                ((_e = payload.pull_request) === null || _e === void 0 ? void 0 : _e.merged)) {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
@@ -580,11 +576,11 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.PullRequestWorkflow = PullRequestWorkflow;
 const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _g;
+    var _f;
     const history = yield slack_1.Slack.conversationsHistory({
         channel: core.getInput('slack-channel-id')
     });
-    return (_g = history.messages) === null || _g === void 0 ? void 0 : _g.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
+    return (_f = history.messages) === null || _f === void 0 ? void 0 : _f.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
 });
 
 
@@ -912,7 +908,7 @@ exports.getPrApprovalStates = void 0;
 const github_1 = __nccwpck_require__(3273);
 const core = __importStar(__nccwpck_require__(2186));
 const request_two_reviewers_1 = __nccwpck_require__(7197);
-const getPrApprovalStates = ({ prAuthor, githubUserNames, requestedReviewers, commit_id, currentUserWithState }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
+const getPrApprovalStates = ({ prAuthor, githubUserNames, requestedReviewers, commit_id }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
     const reviews = yield github_1.githubService.getReviews({
         owner,
         repo,
@@ -943,19 +939,13 @@ const getPrApprovalStates = ({ prAuthor, githubUserNames, requestedReviewers, co
             pull_number
         });
     }
-    const approved = currentUserWithState.state === 'APPROVED'
-        ? [...APPROVED, currentUserWithState.user]
-        : APPROVED;
-    const changesRequested = currentUserWithState.state === 'CHANGES_REQUESTED'
-        ? [...CHANGES_REQUESTED, currentUserWithState.user]
-        : CHANGES_REQUESTED;
     return {
         SECOND_APPROVERS: [
-            ...new Set([...requestedReviewers, ...COMMENTED, ...changesRequested])
+            ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
         ],
-        APPROVED: approved,
+        APPROVED,
         COMMENTED,
-        CHANGES_REQUESTED: changesRequested
+        CHANGES_REQUESTED
     };
 });
 exports.getPrApprovalStates = getPrApprovalStates;
