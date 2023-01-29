@@ -4,18 +4,21 @@ import {requestTwoReviewers} from '../request-two-reviewers'
 import {components} from '@octokit/openapi-types'
 
 type State = 'APPROVED' | 'COMMENTED' | 'CHANGES_REQUESTED'
-type StateUsersMap = Record<State, never[]>
+type StateUsersMap = Record<State, string[]>
+type UserWithState = {user: string; state: State}
 export const getPrApprovalStates = async (
   {
     prAuthor,
     githubUserNames,
     requestedReviewers,
-    commit_id
+    commit_id,
+    currentUserWithState
   }: {
     prAuthor: string
     githubUserNames: string[]
     requestedReviewers: string[]
     commit_id: string
+    currentUserWithState: UserWithState
   },
   {owner, repo, pull_number}: {owner: string; repo: string; pull_number: number}
 ): Promise<StateUsersMap & {SECOND_APPROVERS: string[]}> => {
@@ -42,7 +45,7 @@ export const getPrApprovalStates = async (
 
   const {APPROVED, COMMENTED, CHANGES_REQUESTED} =
     reviewersOnLatestCommit.reduce(
-      (acc, curr): StateUsersMap => {
+      (acc, curr) => {
         return {
           ...acc,
           [curr.state]: [...acc[curr.state], curr.user]
@@ -73,26 +76,36 @@ export const getPrApprovalStates = async (
     )
   }
 
+  const approved =
+    currentUserWithState.state === 'APPROVED'
+      ? [...APPROVED, currentUserWithState.user]
+      : APPROVED
+
+  const changesRequested =
+    currentUserWithState.state === 'CHANGES_REQUESTED'
+      ? [...CHANGES_REQUESTED, currentUserWithState.user]
+      : CHANGES_REQUESTED
+
   return {
     SECOND_APPROVERS: [
-      ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
+      ...new Set([...requestedReviewers, ...COMMENTED, ...changesRequested])
     ],
-    APPROVED,
+    APPROVED: approved,
     COMMENTED,
-    CHANGES_REQUESTED
+    CHANGES_REQUESTED: changesRequested
   }
 }
 
 const getReviewsByCommitId = (
-  commit_id: string,
+  _commit_id: string,
   reviews: components['schemas']['pull-request-review'][]
 ): components['schemas']['pull-request-review'][] => {
-  return reviews.filter((r: {commit_id: string}) => r.commit_id === commit_id)
+  return reviews
 }
 
 const getReviewers = (
   reviews: components['schemas']['pull-request-review'][]
-): {user: string; state: State}[] => {
+): UserWithState[] => {
   const reviewers = reviews.map(r => ({
     user: r?.user?.login as string,
     state: r.state as State
@@ -102,7 +115,7 @@ const getReviewers = (
       reviewersNotUnique: reviewers
     })
   )
-  return uniqueBy<{state: State; user: string}>(['user', 'state'], reviewers)
+  return uniqueBy<UserWithState>(['user', 'state'], reviewers)
 }
 
 const uniqueBy = <T>(properties: string[], arr: T[]): T[] =>

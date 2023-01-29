@@ -86,7 +86,11 @@ export const PullRequestWorkflow = async (): Promise<void> => {
               requestedReviewers: payload.pull_request.requested_reviewers.map(
                 (r: {login: never}) => r.login
               ),
-              commit_id: payload.review.commit_id
+              commit_id: payload.review.commit_id,
+              currentUserWithState: {
+                user: github.context.actor,
+                state: payload.review?.state.toUpperCase()
+              }
             },
             {
               owner: repo.owner,
