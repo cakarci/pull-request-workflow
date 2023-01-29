@@ -2,7 +2,7 @@ import {Context} from '@actions/github/lib/context'
 import {Block, KnownBlock} from '@slack/types'
 import {getUserToLog} from '../get-user-to-log'
 
-export const generatePullRequestMergedMessage = (
+export const generateReadyToMergeMessage = (
   githubContext: Context,
   githubSlackUserMapper: Record<string, string>
 ): (KnownBlock | Block)[] => {
@@ -12,12 +12,12 @@ export const generatePullRequestMergedMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `The <${
-          pull_request?.html_url
-        }|pull request> is merged by ${getUserToLog(
+        text: `Hi ${getUserToLog(
           githubSlackUserMapper,
-          githubContext.actor
-        )}.`
+          pull_request?.user.login
+        )} :wave: your <${
+          pull_request?.html_url
+        }|pull request>  ready to be merged :rocket:`
       }
     }
   ]
