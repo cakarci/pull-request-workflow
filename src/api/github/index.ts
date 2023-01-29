@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {createComment} from './create-comment'
 import {requestReviewers} from './request-reviewers'
-import {getReviewers} from './get-reviewers'
+import {getReviews} from './get-reviews'
 
 const token = core.getInput('github-token')
 const octokit = github.getOctokit(token)
@@ -10,5 +10,5 @@ const octokit = github.getOctokit(token)
 export const githubService = {
   createComment: createComment(octokit),
   requestReviewers: requestReviewers(octokit),
-  getReviewers: getReviewers(octokit)
+  getReviews: getReviews(octokit)
 }

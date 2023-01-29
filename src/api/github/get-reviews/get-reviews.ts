@@ -5,7 +5,7 @@ type Parameters = {
   repo: string
   pull_number: number
 }
-export const getReviewers = (octokit: InstanceType<typeof GitHub>) => {
+export const getReviews = (octokit: InstanceType<typeof GitHub>) => {
   return async ({owner, repo, pull_number}: Parameters) => {
     try {
       const {data} = await octokit.rest.pulls.listReviews({
