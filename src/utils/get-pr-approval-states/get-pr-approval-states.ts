@@ -4,14 +4,12 @@ import {requestTwoReviewers} from '../request-two-reviewers'
 import {components} from '@octokit/openapi-types'
 
 type State = 'APPROVED' | 'COMMENTED' | 'CHANGES_REQUESTED'
-type StateUsersMap = Record<State, string[]>
 type UserWithState = {user: string; state: State}
 export const getPrApprovalStates = async (
   {
     prAuthor,
     githubUserNames,
-    requestedReviewers,
-    commit_id
+    requestedReviewers
   }: {
     prAuthor: string
     githubUserNames: string[]
@@ -19,7 +17,11 @@ export const getPrApprovalStates = async (
     commit_id: string
   },
   {owner, repo, pull_number}: {owner: string; repo: string; pull_number: number}
-): Promise<StateUsersMap & {SECOND_APPROVERS: string[]}> => {
+): Promise<{
+  approvers: string[]
+  secondApprovers: string[]
+  changeRequesters: string[]
+}> => {
   const reviews = await githubService.getReviews({
     owner,
     repo,
@@ -38,33 +40,25 @@ export const getPrApprovalStates = async (
     })
   )
 
-  const reviewsOnLatestCommit = getReviewsByCommitId(commit_id, reviews)
-  const reviewersOnLatestCommit = getReviewers(reviewsOnLatestCommit)
-
-  const {APPROVED, COMMENTED, CHANGES_REQUESTED} =
-    reviewersOnLatestCommit.reduce(
-      (acc, curr) => {
-        return {
-          ...acc,
-          [curr.state]: [...acc[curr.state], curr.user]
-        }
-      },
-      {
-        APPROVED: [],
-        COMMENTED: [],
-        CHANGES_REQUESTED: []
-      }
-    )
+  const reviewersWithState = getReviewers(reviews)
+  const latestReviewOfUsers = getLatestReviewOfUsers(reviewersWithState)
 
   core.info(
     JSON.stringify({
-      reviewersOnLatestCommit
+      latestReviewOfUsers
     })
   )
+  const approvers = Object.values(latestReviewOfUsers).filter(
+    s => s === 'APPROVED'
+  )
 
-  if (requestedReviewers.length === 0 && APPROVED.length < 2) {
+  const changeRequesters = Object.values(latestReviewOfUsers).filter(
+    s => s === 'CHANGES_REQUESTED'
+  )
+
+  if (requestedReviewers.length === 0 && approvers.length < 2) {
     requestedReviewers = await requestTwoReviewers(
-      [prAuthor, ...APPROVED, ...COMMENTED, ...CHANGES_REQUESTED],
+      [prAuthor, ...Object.keys(latestReviewOfUsers)],
       githubUserNames,
       {
         owner,
@@ -75,45 +69,34 @@ export const getPrApprovalStates = async (
   }
 
   return {
-    SECOND_APPROVERS: [
-      ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
+    secondApprovers: [
+      ...new Set([...requestedReviewers, ...Object.keys(latestReviewOfUsers)])
     ],
-    APPROVED,
-    COMMENTED,
-    CHANGES_REQUESTED
+    approvers,
+    changeRequesters
   }
-}
-
-const getReviewsByCommitId = (
-  _commit_id: string,
-  reviews: components['schemas']['pull-request-review'][]
-): components['schemas']['pull-request-review'][] => {
-  return reviews
 }
 
 const getReviewers = (
   reviews: components['schemas']['pull-request-review'][]
 ): UserWithState[] => {
-  const reviewers = reviews.map(r => ({
+  return reviews.map(r => ({
     user: r?.user?.login as string,
     state: r.state as State
   }))
-  core.info(
-    JSON.stringify({
-      reviewersNotUnique: reviewers
-    })
-  )
-  return uniqueBy<UserWithState>(['user', 'state'], reviewers)
 }
 
-const uniqueBy = <T>(properties: string[], arr: T[]): T[] =>
-  arr.filter(
-    (v: T, i: number, a: T[]) =>
-      a.findIndex(v2 =>
-        properties.every(
-          k =>
-            (v2 as Record<string, string>)[k] ===
-            (v as Record<string, string>)[k]
-        )
-      ) === i
-  )
+const getLatestReviewOfUsers = (
+  reviews: UserWithState[]
+): Record<string, State> => {
+  return reviews.reduce((acc, curr) => {
+    const latestReviewOfUser = reviews
+      .filter(r => r.state !== 'COMMENTED')
+      .filter(r => r.user === curr.user)
+      .pop()
+    return {
+      ...acc,
+      [curr.user]: latestReviewOfUser?.state
+    }
+  }, {})
+}

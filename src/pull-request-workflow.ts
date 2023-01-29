@@ -78,7 +78,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             githubSlackUserMapper
           )
         })
-        const {APPROVED, COMMENTED, CHANGES_REQUESTED, SECOND_APPROVERS} =
+        const {approvers, changeRequesters, secondApprovers} =
           await getPrApprovalStates(
             {
               prAuthor: github.context.payload.pull_request?.user.login,
@@ -96,28 +96,23 @@ export const PullRequestWorkflow = async (): Promise<void> => {
           )
 
         core.info(
-          JSON.stringify({
-            APPROVED,
-            COMMENTED,
-            CHANGES_REQUESTED,
-            SECOND_APPROVERS
-          })
+          JSON.stringify({approvers, changeRequesters, secondApprovers})
         )
 
         if (payload.review?.state === 'approved') {
-          if (APPROVED.length === 1) {
+          if (approvers.length === 1) {
             await Slack.postMessage({
               channel: core.getInput('slack-channel-id'),
               thread_ts: thread?.ts,
               blocks: generateSecondReviewerMessage(
                 github.context,
                 githubSlackUserMapper,
-                getRandomItemFromArray(SECOND_APPROVERS)
+                getRandomItemFromArray(secondApprovers)
               )
             })
           }
 
-          if (APPROVED.length >= 2) {
+          if (approvers.length >= 2) {
             await Slack.postMessage({
               channel: core.getInput('slack-channel-id'),
               thread_ts: thread?.ts,
