@@ -575,6 +575,18 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     });
                 }
             }
+            if (payload.action === 'review_requested' &&
+                eventName === 'pull_request' &&
+                payload.pull_request) {
+                core.info(JSON.stringify({
+                    githubContext: github.context
+                }));
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: (0, utils_1.generatePullRequestReviewRequestedMessage)(github.context, githubSlackUserMapper)
+                });
+            }
         }
     }
     catch (error) {
@@ -723,6 +735,32 @@ exports.generatePullRequestOpenedMessage = generatePullRequestOpenedMessage;
 
 /***/ }),
 
+/***/ 5384:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestReviewRequestedMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestReviewRequestedMessage = (githubContext, githubSlackUserMapper) => {
+    var _a;
+    const { pull_request } = githubContext.payload;
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `A new review requested from ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, (_a = githubContext.payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login)} for the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
+            }
+        }
+    ];
+};
+exports.generatePullRequestReviewRequestedMessage = generatePullRequestReviewRequestedMessage;
+
+
+/***/ }),
+
 /***/ 9869:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -829,6 +867,7 @@ __exportStar(__nccwpck_require__(9869), exports);
 __exportStar(__nccwpck_require__(4946), exports);
 __exportStar(__nccwpck_require__(9506), exports);
 __exportStar(__nccwpck_require__(6885), exports);
+__exportStar(__nccwpck_require__(5384), exports);
 
 
 /***/ }),

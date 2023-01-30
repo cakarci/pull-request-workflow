@@ -6,6 +6,7 @@ import {
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
+  generatePullRequestReviewRequestedMessage,
   generatePullRequestReviewSubmittedMessage,
   generateReadyToMergeMessage,
   generateSecondReviewerMessage,
@@ -160,6 +161,26 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             )
           })
         }
+      }
+
+      if (
+        payload.action === 'review_requested' &&
+        eventName === 'pull_request' &&
+        payload.pull_request
+      ) {
+        core.info(
+          JSON.stringify({
+            githubContext: github.context
+          })
+        )
+        await Slack.postMessage({
+          channel: core.getInput('slack-channel-id'),
+          thread_ts: thread?.ts,
+          blocks: generatePullRequestReviewRequestedMessage(
+            github.context,
+            githubSlackUserMapper
+          )
+        })
       }
     }
   } catch (error) {
