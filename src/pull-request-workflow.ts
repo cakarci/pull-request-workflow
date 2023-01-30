@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Slack} from './api/slack'
 import {
+  generateNewCommitAddedMessage,
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
@@ -137,6 +138,28 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             githubSlackUserMapper
           )
         })
+      }
+
+      if (
+        payload.action === 'synchronize' &&
+        eventName === 'pull_request' &&
+        payload.pull_request
+      ) {
+        core.info(
+          JSON.stringify({
+            githubContext: github.context
+          })
+        )
+        if (payload.before !== payload.after) {
+          await Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: thread?.ts,
+            blocks: generateNewCommitAddedMessage(
+              github.context,
+              githubSlackUserMapper
+            )
+          })
+        }
       }
     }
   } catch (error) {
