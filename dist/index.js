@@ -493,10 +493,6 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
         if (payload.action === 'opened' &&
             eventName === 'pull_request' &&
             payload.pull_request) {
-            const thread = yield getPullRequestThread();
-            if (thread) {
-                return;
-            }
             const [firstReviewer, secondReviewer] = yield (0, utils_1.requestTwoReviewers)([actor], githubUserNames, {
                 owner: repo.owner,
                 repo: repo.repo,

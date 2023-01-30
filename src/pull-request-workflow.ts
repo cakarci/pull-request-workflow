@@ -30,10 +30,6 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       eventName === 'pull_request' &&
       payload.pull_request
     ) {
-      const thread = await getPullRequestThread()
-      if (thread) {
-        return
-      }
       const [firstReviewer, secondReviewer] = await requestTwoReviewers(
         [actor],
         githubUserNames,
