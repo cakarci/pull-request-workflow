@@ -561,6 +561,26 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     blocks: (0, utils_1.generatePullRequestMergedMessage)(github.context, githubSlackUserMapper)
                 });
             }
+            if (payload.action === 'synchronize' &&
+                eventName === 'pull_request' &&
+                payload.pull_request) {
+                if (payload.before !== payload.after) {
+                    yield slack_1.Slack.postMessage({
+                        channel: core.getInput('slack-channel-id'),
+                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                        blocks: (0, utils_1.generateNewCommitAddedMessage)(github.context, githubSlackUserMapper)
+                    });
+                }
+            }
+            if (payload.action === 'review_requested' &&
+                eventName === 'pull_request' &&
+                payload.pull_request) {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: (0, utils_1.generatePullRequestReviewRequestedMessage)(github.context, githubSlackUserMapper)
+                });
+            }
         }
     }
     catch (error) {
@@ -576,6 +596,31 @@ const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* (
     });
     return (_f = history.messages) === null || _f === void 0 ? void 0 : _f.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
 });
+
+
+/***/ }),
+
+/***/ 6885:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generateNewCommitAddedMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generateNewCommitAddedMessage = (githubContext, githubSlackUserMapper) => {
+    const { pull_request } = githubContext.payload;
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `A new <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}/commits/${githubContext.payload.after}|commit> added to the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
+            }
+        }
+    ];
+};
+exports.generateNewCommitAddedMessage = generateNewCommitAddedMessage;
 
 
 /***/ }),
@@ -684,6 +729,32 @@ exports.generatePullRequestOpenedMessage = generatePullRequestOpenedMessage;
 
 /***/ }),
 
+/***/ 5384:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestReviewRequestedMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestReviewRequestedMessage = (githubContext, githubSlackUserMapper) => {
+    var _a;
+    const { pull_request } = githubContext.payload;
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, (_a = githubContext.payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login)} :wave: A new review was requested from you for the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
+            }
+        }
+    ];
+};
+exports.generatePullRequestReviewRequestedMessage = generatePullRequestReviewRequestedMessage;
+
+
+/***/ }),
+
 /***/ 9869:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -694,6 +765,7 @@ exports.generateSecondReviewerMessage = exports.generatePullRequestReviewSubmitt
 const get_user_to_log_1 = __nccwpck_require__(3070);
 const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUserMapper) => {
     const { pull_request, review } = githubContext.payload;
+    const reviewState = (review === null || review === void 0 ? void 0 : review.state).toUpperCase();
     return [
         {
             type: 'section',
@@ -707,7 +779,11 @@ const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUse
             elements: [
                 {
                     type: 'mrkdwn',
-                    text: `*Review State:* ${(review === null || review === void 0 ? void 0 : review.state).toUpperCase()}`
+                    text: `*Review State:* ${reviewState} ${reviewState === 'APPROVED'
+                        ? ':large_green_circle:'
+                        : reviewState === 'CHANGES_REQUESTED'
+                            ? ':red_circle:'
+                            : ':page_with_curl:'}`
                 }
             ]
         }
@@ -789,6 +865,8 @@ __exportStar(__nccwpck_require__(6202), exports);
 __exportStar(__nccwpck_require__(9869), exports);
 __exportStar(__nccwpck_require__(4946), exports);
 __exportStar(__nccwpck_require__(9506), exports);
+__exportStar(__nccwpck_require__(6885), exports);
+__exportStar(__nccwpck_require__(5384), exports);
 
 
 /***/ }),

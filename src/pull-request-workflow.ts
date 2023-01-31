@@ -2,9 +2,11 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Slack} from './api/slack'
 import {
+  generateNewCommitAddedMessage,
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
+  generatePullRequestReviewRequestedMessage,
   generatePullRequestReviewSubmittedMessage,
   generateReadyToMergeMessage,
   generateSecondReviewerMessage,
@@ -133,6 +135,38 @@ export const PullRequestWorkflow = async (): Promise<void> => {
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
           blocks: generatePullRequestMergedMessage(
+            github.context,
+            githubSlackUserMapper
+          )
+        })
+      }
+
+      if (
+        payload.action === 'synchronize' &&
+        eventName === 'pull_request' &&
+        payload.pull_request
+      ) {
+        if (payload.before !== payload.after) {
+          await Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: thread?.ts,
+            blocks: generateNewCommitAddedMessage(
+              github.context,
+              githubSlackUserMapper
+            )
+          })
+        }
+      }
+
+      if (
+        payload.action === 'review_requested' &&
+        eventName === 'pull_request' &&
+        payload.pull_request
+      ) {
+        await Slack.postMessage({
+          channel: core.getInput('slack-channel-id'),
+          thread_ts: thread?.ts,
+          blocks: generatePullRequestReviewRequestedMessage(
             github.context,
             githubSlackUserMapper
           )
