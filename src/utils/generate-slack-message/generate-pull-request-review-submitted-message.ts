@@ -7,6 +7,7 @@ export const generatePullRequestReviewSubmittedMessage = (
   githubSlackUserMapper: Record<string, string>
 ): (KnownBlock | Block)[] => {
   const {pull_request, review} = githubContext.payload
+  const reviewState = (review?.state).toUpperCase()
   return [
     {
       type: 'section',
@@ -26,7 +27,13 @@ export const generatePullRequestReviewSubmittedMessage = (
       elements: [
         {
           type: 'mrkdwn',
-          text: `*Review State:* ${(review?.state).toUpperCase()}`
+          text: `*Review State:* ${reviewState} ${
+            reviewState === 'APPROVED'
+              ? ':large_green_circle:'
+              : reviewState === 'CHANGES_REQUESTED'
+              ? ':red_circle:'
+              : ':page_with_curl:'
+          }`
         }
       ]
     }

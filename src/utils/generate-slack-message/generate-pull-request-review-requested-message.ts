@@ -12,10 +12,12 @@ export const generatePullRequestReviewRequestedMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `A new review requested from ${getUserToLog(
+        text: `Hi ${getUserToLog(
           githubSlackUserMapper,
           githubContext.payload.requested_reviewer?.login
-        )} for the <${pull_request?.html_url}|pull request> by ${getUserToLog(
+        )} :wave: A new review was requested from you for the <${
+          pull_request?.html_url
+        }|pull request> by ${getUserToLog(
           githubSlackUserMapper,
           githubContext.actor
         )}.`

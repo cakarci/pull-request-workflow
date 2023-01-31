@@ -12,7 +12,9 @@ export const generateNewCommitAddedMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `A new commit added to the <${
+        text: `A new <${pull_request?.html_url}/commits/${
+          githubContext.payload.after
+        }|commit> added to the <${
           pull_request?.html_url
         }|pull request> by ${getUserToLog(
           githubSlackUserMapper,

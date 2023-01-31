@@ -564,9 +564,6 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             if (payload.action === 'synchronize' &&
                 eventName === 'pull_request' &&
                 payload.pull_request) {
-                core.info(JSON.stringify({
-                    githubContext: github.context
-                }));
                 if (payload.before !== payload.after) {
                     yield slack_1.Slack.postMessage({
                         channel: core.getInput('slack-channel-id'),
@@ -578,9 +575,6 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             if (payload.action === 'review_requested' &&
                 eventName === 'pull_request' &&
                 payload.pull_request) {
-                core.info(JSON.stringify({
-                    githubContext: github.context
-                }));
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
@@ -621,7 +615,7 @@ const generateNewCommitAddedMessage = (githubContext, githubSlackUserMapper) => 
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `A new commit added to the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
+                text: `A new <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}/commits/${githubContext.payload.after}|commit> added to the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
             }
         }
     ];
@@ -751,7 +745,7 @@ const generatePullRequestReviewRequestedMessage = (githubContext, githubSlackUse
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `A new review requested from ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, (_a = githubContext.payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login)} for the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, (_a = githubContext.payload.requested_reviewer) === null || _a === void 0 ? void 0 : _a.login)} :wave: A new review was requested from you for the <${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}|pull request> by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}.`
             }
         }
     ];
@@ -771,6 +765,7 @@ exports.generateSecondReviewerMessage = exports.generatePullRequestReviewSubmitt
 const get_user_to_log_1 = __nccwpck_require__(3070);
 const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUserMapper) => {
     const { pull_request, review } = githubContext.payload;
+    const reviewState = (review === null || review === void 0 ? void 0 : review.state).toUpperCase();
     return [
         {
             type: 'section',
@@ -784,7 +779,11 @@ const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUse
             elements: [
                 {
                     type: 'mrkdwn',
-                    text: `*Review State:* ${(review === null || review === void 0 ? void 0 : review.state).toUpperCase()}`
+                    text: `*Review State:* ${reviewState} ${reviewState === 'APPROVED'
+                        ? ':large_green_circle:'
+                        : reviewState === 'CHANGES_REQUESTED'
+                            ? ':red_circle:'
+                            : ':page_with_curl:'}`
                 }
             ]
         }
