@@ -19,11 +19,6 @@ import {
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
-  core.info(
-    JSON.stringify({
-      githubContext: github.context
-    })
-  )
   const supportedEventNames = [
     'pull_request',
     'pull_request_review',

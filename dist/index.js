@@ -483,9 +483,6 @@ const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e;
-    core.info(JSON.stringify({
-        githubContext: github.context
-    }));
     const supportedEventNames = [
         'pull_request',
         'pull_request_review',
