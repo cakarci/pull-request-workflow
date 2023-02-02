@@ -483,10 +483,16 @@ const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e;
+    const supportedEventNames = [
+        'pull_request',
+        'pull_request_review',
+        'pull_request_review_comment',
+        'issue_comment'
+    ];
     try {
         const { actor, repo, eventName, payload } = github.context;
-        if (!eventName.startsWith('pull_request')) {
-            core.warning(`eventName should be "pull_request*" but received: ${eventName} `);
+        if (!supportedEventNames.includes(eventName)) {
+            core.warning(`eventName should be ${supportedEventNames.join(',')} but received: ${eventName} `);
             return;
         }
         const { githubUserNames, githubSlackUserMapper } = yield (0, utils_1.getFileContent)();
@@ -506,11 +512,21 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
         }
         else {
             const thread = yield getPullRequestThread();
+            if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
+                return;
+            }
             if (payload.action === 'labeled') {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                     blocks: (0, utils_1.generatePullRequestLabeledMessage)(github.context, githubSlackUserMapper)
+                });
+            }
+            if (eventName === 'issue_comment' && payload.action === 'created') {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: (0, utils_1.generatePullRequestCommentAddedMessage)(github.context, githubSlackUserMapper)
                 });
             }
             if (eventName === 'pull_request_review' &&
@@ -621,6 +637,31 @@ const generateNewCommitAddedMessage = (githubContext, githubSlackUserMapper) => 
     ];
 };
 exports.generateNewCommitAddedMessage = generateNewCommitAddedMessage;
+
+
+/***/ }),
+
+/***/ 3432:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestCommentAddedMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestCommentAddedMessage = (githubContext, githubSlackUserMapper) => {
+    const { comment, issue } = githubContext.payload;
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, issue === null || issue === void 0 ? void 0 : issue.user.login)}, a new <${comment === null || comment === void 0 ? void 0 : comment.html_url}|review comment> added by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}`
+            }
+        }
+    ];
+};
+exports.generatePullRequestCommentAddedMessage = generatePullRequestCommentAddedMessage;
 
 
 /***/ }),
@@ -867,6 +908,7 @@ __exportStar(__nccwpck_require__(4946), exports);
 __exportStar(__nccwpck_require__(9506), exports);
 __exportStar(__nccwpck_require__(6885), exports);
 __exportStar(__nccwpck_require__(5384), exports);
+__exportStar(__nccwpck_require__(3432), exports);
 
 
 /***/ }),

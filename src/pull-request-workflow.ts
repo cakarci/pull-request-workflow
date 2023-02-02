@@ -3,6 +3,7 @@ import * as github from '@actions/github'
 import {Slack} from './api/slack'
 import {
   generateNewCommitAddedMessage,
+  generatePullRequestCommentAddedMessage,
   generatePullRequestLabeledMessage,
   generatePullRequestMergedMessage,
   generatePullRequestOpenedMessage,
@@ -18,11 +19,19 @@ import {
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
+  const supportedEventNames = [
+    'pull_request',
+    'pull_request_review',
+    'pull_request_review_comment',
+    'issue_comment'
+  ]
   try {
     const {actor, repo, eventName, payload} = github.context
-    if (!eventName.startsWith('pull_request')) {
+    if (!supportedEventNames.includes(eventName)) {
       core.warning(
-        `eventName should be "pull_request*" but received: ${eventName} `
+        `eventName should be ${supportedEventNames.join(
+          ','
+        )} but received: ${eventName} `
       )
       return
     }
@@ -53,11 +62,24 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       })
     } else {
       const thread = await getPullRequestThread()
+      if (!thread?.ts) {
+        return
+      }
       if (payload.action === 'labeled') {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
           blocks: generatePullRequestLabeledMessage(
+            github.context,
+            githubSlackUserMapper
+          )
+        })
+      }
+      if (eventName === 'issue_comment' && payload.action === 'created') {
+        await Slack.postMessage({
+          channel: core.getInput('slack-channel-id'),
+          thread_ts: thread?.ts,
+          blocks: generatePullRequestCommentAddedMessage(
             github.context,
             githubSlackUserMapper
           )
