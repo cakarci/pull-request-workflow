@@ -17,7 +17,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.ref || github.event.issue.pull_request.head.ref }}
+          ref: ${{ github.event.pull_request.head.sha || github.event.issue.pull_request.head.sha }}
       - name: Run Pull Request workflow action
         uses: ./
         with:

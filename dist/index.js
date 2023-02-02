@@ -483,6 +483,9 @@ const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e;
+    core.info(JSON.stringify({
+        githubContext: github.context
+    }));
     const supportedEventNames = [
         'pull_request',
         'pull_request_review',
@@ -606,11 +609,13 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.PullRequestWorkflow = PullRequestWorkflow;
 const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _f;
+    var _f, _g, _h, _j;
     const history = yield slack_1.Slack.conversationsHistory({
         channel: core.getInput('slack-channel-id')
     });
-    return (_f = history.messages) === null || _f === void 0 ? void 0 : _f.find(m => { var _a; return m.text === `${(_a = github.context.payload.pull_request) === null || _a === void 0 ? void 0 : _a.id}`; });
+    const prID = ((_f = github.context.payload.pull_request) === null || _f === void 0 ? void 0 : _f.id) ||
+        ((_h = (_g = github.context.payload.issue) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.id);
+    return (_j = history.messages) === null || _j === void 0 ? void 0 : _j.find(m => m.text === `${prID}`);
 });
 
 
