@@ -482,7 +482,7 @@ const github = __importStar(__nccwpck_require__(5438));
 const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f;
     const supportedEventNames = [
         'pull_request',
         'pull_request_review',
@@ -506,7 +506,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             });
             yield slack_1.Slack.postMessage({
                 channel: core.getInput('slack-channel-id'),
-                text: `${(_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.number}`,
+                text: `${(_a = github.context.payload.repository) === null || _a === void 0 ? void 0 : _a.name}-${(_b = payload.pull_request) === null || _b === void 0 ? void 0 : _b.number}`,
                 blocks: (0, utils_1.generatePullRequestOpenedMessage)(github.context, githubSlackUserMapper, firstReviewer, secondReviewer)
             });
         }
@@ -538,20 +538,20 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     blocks: (0, utils_1.generatePullRequestReviewSubmittedMessage)(github.context, githubSlackUserMapper)
                 });
                 const { approvers, changeRequesters, secondApprovers } = yield (0, utils_1.getPrApprovalStates)({
-                    prAuthor: (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.user.login,
+                    prAuthor: (_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.user.login,
                     githubUserNames,
                     requestedReviewers: payload.pull_request.requested_reviewers.map((r) => r.login)
                 }, {
                     owner: repo.owner,
                     repo: repo.repo,
-                    pull_number: (_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.number
+                    pull_number: (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.number
                 });
                 core.info(JSON.stringify({
                     approvers,
                     changeRequesters,
                     secondApprovers
                 }));
-                if (((_d = payload.review) === null || _d === void 0 ? void 0 : _d.state) === 'approved') {
+                if (((_e = payload.review) === null || _e === void 0 ? void 0 : _e.state) === 'approved') {
                     if (approvers.length === 1) {
                         yield slack_1.Slack.postMessage({
                             channel: core.getInput('slack-channel-id'),
@@ -570,7 +570,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             }
             if (eventName === 'pull_request' &&
                 payload.action === 'closed' &&
-                ((_e = payload.pull_request) === null || _e === void 0 ? void 0 : _e.merged)) {
+                ((_f = payload.pull_request) === null || _f === void 0 ? void 0 : _f.merged)) {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
@@ -606,13 +606,14 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.PullRequestWorkflow = PullRequestWorkflow;
 const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _f, _g, _h;
+    var _g, _h, _j, _k;
     const history = yield slack_1.Slack.conversationsHistory({
         channel: core.getInput('slack-channel-id')
     });
-    const number = ((_f = github.context.payload.pull_request) === null || _f === void 0 ? void 0 : _f.number) ||
-        ((_g = github.context.payload.issue) === null || _g === void 0 ? void 0 : _g.number);
-    return (_h = history.messages) === null || _h === void 0 ? void 0 : _h.find(m => m.text === `${number}`);
+    const repoName = (_g = github.context.payload.repository) === null || _g === void 0 ? void 0 : _g.name;
+    const number = ((_h = github.context.payload.pull_request) === null || _h === void 0 ? void 0 : _h.number) ||
+        ((_j = github.context.payload.issue) === null || _j === void 0 ? void 0 : _j.number);
+    return (_k = history.messages) === null || _k === void 0 ? void 0 : _k.find(m => m.text === `${repoName}-${number}`);
 });
 
 

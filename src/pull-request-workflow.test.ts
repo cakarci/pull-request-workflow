@@ -37,6 +37,9 @@ jest.mock('@actions/github', () => {
         pull_request: {
           number: 20,
           id: 'PULL_REQUEST_ID'
+        },
+        repository: {
+          name: 'pull-request-workflow'
         }
       },
       eventName: 'pull_request',
@@ -63,18 +66,25 @@ describe('Pull request workflow', () => {
     expect(Slack.postMessage).toHaveBeenCalledWith({
       blocks: 'PULL_REQUEST_OPENED_BLOCK',
       channel: 'SLACK_CHANNEL_ID',
-      text: '20'
+      text: 'pull-request-workflow-20'
     })
     expect(generatePullRequestOpenedMessage).toHaveBeenCalledWith(
       {
-        actor: 'cakarci',
-        eventName: 'pull_request',
         payload: {
           action: 'opened',
-          pull_request: {id: 'PULL_REQUEST_ID', number: 20}
+          pull_request: {
+            number: 20,
+            id: 'PULL_REQUEST_ID'
+          },
+          repository: {
+            name: 'pull-request-workflow'
+          }
         },
-
-        repo: {owner: 'cakarci'}
+        eventName: 'pull_request',
+        repo: {
+          owner: 'cakarci'
+        },
+        actor: 'cakarci'
       },
       {
         cakarci: 'U035MNNF8LW',
