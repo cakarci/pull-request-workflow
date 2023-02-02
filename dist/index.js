@@ -506,7 +506,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             });
             yield slack_1.Slack.postMessage({
                 channel: core.getInput('slack-channel-id'),
-                text: (_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.id,
+                text: `${(_a = payload.pull_request) === null || _a === void 0 ? void 0 : _a.number}`,
                 blocks: (0, utils_1.generatePullRequestOpenedMessage)(github.context, githubSlackUserMapper, firstReviewer, secondReviewer)
             });
         }
@@ -606,13 +606,13 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.PullRequestWorkflow = PullRequestWorkflow;
 const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _f, _g, _h, _j;
+    var _f, _g, _h;
     const history = yield slack_1.Slack.conversationsHistory({
         channel: core.getInput('slack-channel-id')
     });
-    const prID = ((_f = github.context.payload.pull_request) === null || _f === void 0 ? void 0 : _f.id) ||
-        ((_h = (_g = github.context.payload.issue) === null || _g === void 0 ? void 0 : _g.pull_request) === null || _h === void 0 ? void 0 : _h.id);
-    return (_j = history.messages) === null || _j === void 0 ? void 0 : _j.find(m => m.text === `${prID}`);
+    const number = ((_f = github.context.payload.pull_request) === null || _f === void 0 ? void 0 : _f.number) ||
+        ((_g = github.context.payload.issue) === null || _g === void 0 ? void 0 : _g.number);
+    return (_h = history.messages) === null || _h === void 0 ? void 0 : _h.find(m => m.text === `${number}`);
 });
 
 

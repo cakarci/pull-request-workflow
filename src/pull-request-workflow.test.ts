@@ -63,7 +63,7 @@ describe('Pull request workflow', () => {
     expect(Slack.postMessage).toHaveBeenCalledWith({
       blocks: 'PULL_REQUEST_OPENED_BLOCK',
       channel: 'SLACK_CHANNEL_ID',
-      text: 'PULL_REQUEST_ID'
+      text: '20'
     })
     expect(generatePullRequestOpenedMessage).toHaveBeenCalledWith(
       {

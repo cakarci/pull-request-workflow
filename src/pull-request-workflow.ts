@@ -52,7 +52,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       )
       await Slack.postMessage({
         channel: core.getInput('slack-channel-id'),
-        text: payload.pull_request?.id,
+        text: `${payload.pull_request?.number}`,
         blocks: generatePullRequestOpenedMessage(
           github.context,
           githubSlackUserMapper,
@@ -204,8 +204,8 @@ const getPullRequestThread = async (): Promise<Message | undefined> => {
   const history = await Slack.conversationsHistory({
     channel: core.getInput('slack-channel-id')
   })
-  const prID =
-    github.context.payload.pull_request?.id ||
-    github.context.payload.issue?.pull_request?.id
-  return history.messages?.find(m => m.text === `${prID}`)
+  const number =
+    github.context.payload.pull_request?.number ||
+    github.context.payload.issue?.number
+  return history.messages?.find(m => m.text === `${number}`)
 }
