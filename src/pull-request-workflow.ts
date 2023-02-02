@@ -205,7 +205,6 @@ const getPullRequestThread = async (): Promise<Message | undefined> => {
     channel: core.getInput('slack-channel-id')
   })
   const prID =
-    github.context.payload.pull_request?.id ||
-    github.context.payload.issue?.pull_request?.id
+    github.context.payload.pull_request?.id || github.context.payload.issue?.id
   return history.messages?.find(m => m.text === `${prID}`)
 }
