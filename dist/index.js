@@ -659,7 +659,7 @@ const generatePullRequestCommentAddedMessage = (githubContext, githubSlackUserMa
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, issue === null || issue === void 0 ? void 0 : issue.user.login)}, a new <${comment === null || comment === void 0 ? void 0 : comment.html_url}|review comment> added by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}`
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, issue === null || issue === void 0 ? void 0 : issue.user.login)}, a new <${comment === null || comment === void 0 ? void 0 : comment.html_url}|comment> added by ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, githubContext.actor)}`
             }
         }
     ];

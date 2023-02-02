@@ -15,7 +15,7 @@ export const generatePullRequestCommentAddedMessage = (
         text: `Hi ${getUserToLog(
           githubSlackUserMapper,
           issue?.user.login
-        )}, a new <${comment?.html_url}|review comment> added by ${getUserToLog(
+        )}, a new <${comment?.html_url}|comment> added by ${getUserToLog(
           githubSlackUserMapper,
           githubContext.actor
         )}`
