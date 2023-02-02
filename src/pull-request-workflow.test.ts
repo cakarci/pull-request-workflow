@@ -50,7 +50,8 @@ jest.mock('@actions/github', () => {
 
 jest.mock('@actions/core', () => {
   return {
-    getInput: jest.fn().mockReturnValue('SLACK_CHANNEL_ID')
+    getInput: jest.fn().mockReturnValue('SLACK_CHANNEL_ID'),
+    info: jest.fn()
   }
 })
 
