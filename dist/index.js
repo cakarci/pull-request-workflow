@@ -410,6 +410,24 @@ exports.postMessage = postMessage;
 
 /***/ }),
 
+/***/ 5105:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GithubEventNames = void 0;
+var GithubEventNames;
+(function (GithubEventNames) {
+    GithubEventNames["PULL_REQUEST"] = "pull_request";
+    GithubEventNames["PULL_REQUEST_REVIEW"] = "pull_request_review";
+    GithubEventNames["PULL_REQUEST_REVIEW_COMMENT"] = "pull_request_review_comment";
+    GithubEventNames["ISSUE_COMMENT"] = "issue_comment";
+})(GithubEventNames = exports.GithubEventNames || (exports.GithubEventNames = {}));
+
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -481,23 +499,24 @@ const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
 const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
+const constants_1 = __nccwpck_require__(5105);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f;
-    const supportedEventNames = [
-        'pull_request',
-        'pull_request_review',
-        'pull_request_review_comment',
-        'issue_comment'
+    const eventNames = [
+        constants_1.GithubEventNames.PULL_REQUEST,
+        constants_1.GithubEventNames.PULL_REQUEST_REVIEW,
+        constants_1.GithubEventNames.PULL_REQUEST_REVIEW_COMMENT,
+        constants_1.GithubEventNames.ISSUE_COMMENT
     ];
     try {
         const { actor, repo, eventName, payload } = github.context;
-        if (!supportedEventNames.includes(eventName)) {
-            core.warning(`eventName should be ${supportedEventNames.join(',')} but received: ${eventName} `);
+        if (!eventNames.includes(eventName)) {
+            core.warning(`eventName should be ${eventNames.join(',')} but received: ${eventName} `);
             return;
         }
         const { githubUserNames, githubSlackUserMapper } = yield (0, utils_1.getFileContent)();
-        if (payload.action === 'opened' &&
-            eventName === 'pull_request' &&
+        if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
+            payload.action === 'opened' &&
             payload.pull_request) {
             const [firstReviewer, secondReviewer] = yield (0, utils_1.requestTwoReviewers)([actor], githubUserNames, {
                 owner: repo.owner,
@@ -515,21 +534,52 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
                 return;
             }
-            if (payload.action === 'labeled') {
+            if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
+                payload.action === 'labeled') {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                     blocks: (0, utils_1.generatePullRequestLabeledMessage)(github.context, githubSlackUserMapper)
                 });
             }
-            if (eventName === 'issue_comment' && payload.action === 'created') {
+            if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
+                payload.action === 'closed' &&
+                ((_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.merged)) {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: (0, utils_1.generatePullRequestMergedMessage)(github.context, githubSlackUserMapper)
+                });
+            }
+            if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
+                payload.action === 'synchronize' &&
+                payload.pull_request) {
+                if (payload.before !== payload.after) {
+                    yield slack_1.Slack.postMessage({
+                        channel: core.getInput('slack-channel-id'),
+                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                        blocks: (0, utils_1.generateNewCommitAddedMessage)(github.context, githubSlackUserMapper)
+                    });
+                }
+            }
+            if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
+                payload.action === 'review_requested' &&
+                payload.pull_request) {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: (0, utils_1.generatePullRequestReviewRequestedMessage)(github.context, githubSlackUserMapper)
+                });
+            }
+            if (eventName === constants_1.GithubEventNames.ISSUE_COMMENT &&
+                payload.action === 'created') {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                     blocks: (0, utils_1.generatePullRequestCommentAddedMessage)(github.context, githubSlackUserMapper)
                 });
             }
-            if (eventName === 'pull_request_review' &&
+            if (eventName === constants_1.GithubEventNames.PULL_REQUEST_REVIEW &&
                 payload.action === 'submitted' &&
                 payload.pull_request) {
                 yield slack_1.Slack.postMessage({
@@ -538,20 +588,20 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     blocks: (0, utils_1.generatePullRequestReviewSubmittedMessage)(github.context, githubSlackUserMapper)
                 });
                 const { approvers, changeRequesters, secondApprovers } = yield (0, utils_1.getPrApprovalStates)({
-                    prAuthor: (_c = github.context.payload.pull_request) === null || _c === void 0 ? void 0 : _c.user.login,
+                    prAuthor: (_d = github.context.payload.pull_request) === null || _d === void 0 ? void 0 : _d.user.login,
                     githubUserNames,
                     requestedReviewers: payload.pull_request.requested_reviewers.map((r) => r.login)
                 }, {
                     owner: repo.owner,
                     repo: repo.repo,
-                    pull_number: (_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.number
+                    pull_number: (_e = payload.pull_request) === null || _e === void 0 ? void 0 : _e.number
                 });
                 core.info(JSON.stringify({
                     approvers,
                     changeRequesters,
                     secondApprovers
                 }));
-                if (((_e = payload.review) === null || _e === void 0 ? void 0 : _e.state) === 'approved') {
+                if (((_f = payload.review) === null || _f === void 0 ? void 0 : _f.state) === 'approved') {
                     if (approvers.length === 1) {
                         yield slack_1.Slack.postMessage({
                             channel: core.getInput('slack-channel-id'),
@@ -567,35 +617,6 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                         });
                     }
                 }
-            }
-            if (eventName === 'pull_request' &&
-                payload.action === 'closed' &&
-                ((_f = payload.pull_request) === null || _f === void 0 ? void 0 : _f.merged)) {
-                yield slack_1.Slack.postMessage({
-                    channel: core.getInput('slack-channel-id'),
-                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                    blocks: (0, utils_1.generatePullRequestMergedMessage)(github.context, githubSlackUserMapper)
-                });
-            }
-            if (payload.action === 'synchronize' &&
-                eventName === 'pull_request' &&
-                payload.pull_request) {
-                if (payload.before !== payload.after) {
-                    yield slack_1.Slack.postMessage({
-                        channel: core.getInput('slack-channel-id'),
-                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                        blocks: (0, utils_1.generateNewCommitAddedMessage)(github.context, githubSlackUserMapper)
-                    });
-                }
-            }
-            if (payload.action === 'review_requested' &&
-                eventName === 'pull_request' &&
-                payload.pull_request) {
-                yield slack_1.Slack.postMessage({
-                    channel: core.getInput('slack-channel-id'),
-                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                    blocks: (0, utils_1.generatePullRequestReviewRequestedMessage)(github.context, githubSlackUserMapper)
-                });
             }
         }
     }
