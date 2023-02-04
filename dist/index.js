@@ -511,7 +511,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
     try {
         const { actor, repo, eventName, payload } = github.context;
         if (!eventNames.includes(eventName)) {
-            core.warning(`eventName should be ${eventNames.join(',')} but received: ${eventName} `);
+            core.warning(`eventName should be ${eventNames.join(',')} however received: ${eventName} `);
             return;
         }
         const { githubUserNames, githubSlackUserMapper } = yield (0, utils_1.getFileContent)();
