@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+yarn package
+git add dist
+git commit -a -m "chore: update dist folder"
