@@ -1,4 +1,4 @@
-name: 'Pull request workflow with Slack'
+name: 'Pull request workflow with 4 eyes principle'
 description: 'It creates a workflow for your pull request by auto-assigning reviewers and sending slack notifications as a thread'
 author: 'cakarci <salihcakarci@gmail.com>'
 inputs:
