@@ -2,8 +2,8 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 yarn all
-cd ..
-IS_DIST_CHANGED=$(git --no-pager diff dist)
+
+IS_DIST_CHANGED=$(git --no-pager diff ../dist)
 # shellcheck disable=SC2039
 if [[ ("$IS_DIST_CHANGED" =~ (^diff --git+)) ]]
 then
