@@ -1,6 +1,13 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-yarn package
-git add dist
-git commit -a -m "chore: update dist folder"
+yarn all
+cd ..
+IS_DIST_CHANGED=$(git --no-pager diff dist)
+# shellcheck disable=SC2039
+if [[ ("$IS_DIST_CHANGED" =~ (^diff --git+)) ]]
+then
+  git add dist
+  git commit -m "chore: update dist folder"
+fi
+
