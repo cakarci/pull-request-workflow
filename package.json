@@ -10,7 +10,7 @@
     "lint": "eslint src/**/*.ts",
     "package": "ncc build --source-map --license licenses.txt",
     "test": "jest",
-    "all": "yarn build && yarn format && yarn lint && yarn test",
+    "all": "yarn build && yarn format && yarn lint && yarn package && yarn test",
     "prepare": "husky install"
   },
   "repository": "https://github.com/cakarci/pull-request-workflow.git",
