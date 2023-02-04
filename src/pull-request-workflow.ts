@@ -32,7 +32,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       core.warning(
         `eventName should be ${eventNames.join(
           ','
-        )} but received: ${eventName} `
+        )} however received: ${eventName} `
       )
       return
     }
