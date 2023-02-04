@@ -17,9 +17,9 @@ Please note that this project is released with a [Contributor Code of Conduct][c
 2. Create a new branch: `git checkout -b my-branch-name`
 3. Install dependencies `yarn install`
 4. Make your change, add tests, and make sure the tests still pass
-5. A new commit will **automatically** run the pre-commit hook `yarn all` in your local
-6. After it runs, new bundled files will be generated under `dist/` folder. **Do not forget to commit these files as well before pushing**
-7. Push to your fork and [submit a pull request](https://help.github.com/en/articles/creating-a-pull-request)
+5. Push to your fork and [submit a pull request](https://help.github.com/en/articles/creating-a-pull-request)
+6. Pushing your changes to the remote branch will **automatically** run the `yarn all` on pre-push hook in your local
+7. After it runs, new bundled files will be generated under `dist/` folder and an additional commit `chore: update dist folder` will be added **automatically**
 8. Wait for your pull request to be reviewed and merged. 🚀
 
 Here are a few things you can do that will increase the likelihood of your pull request being accepted:
