@@ -1,13 +1,14 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
-
-yarn all
-
-IS_DIST_CHANGED=$(git --no-pager diff ../dist)
+cd ..
+IS_DIST_CHANGED=$(git --no-pager diff .husky)
 # shellcheck disable=SC2039
 if [[ ("$IS_DIST_CHANGED" =~ (^diff --git+)) ]]
 then
+  echo "changed $(pwd)"
   git add dist
   git commit -m "chore: update dist folder"
+else
+  echo "not changed $(pwd)"
 fi
 
