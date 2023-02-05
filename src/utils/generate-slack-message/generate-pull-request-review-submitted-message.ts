@@ -2,13 +2,14 @@ import {Context} from '@actions/github/lib/context'
 import {Block, KnownBlock} from '@slack/types'
 import {getUserToLog} from '../get-user-to-log'
 import {generateGreetingMessage} from './partial-messages'
+import {ReviewStates} from '../../constants'
 
 export const generatePullRequestReviewSubmittedMessage = (
   githubContext: Context,
   githubSlackUserMapper: Record<string, string>
 ): (KnownBlock | Block)[] => {
   const {review} = githubContext.payload
-  const reviewState = (review?.state).toUpperCase().replace('_', ' ')
+  const reviewState = (review?.state).toUpperCase()
   return [
     {
       type: 'section',
@@ -28,10 +29,10 @@ export const generatePullRequestReviewSubmittedMessage = (
       elements: [
         {
           type: 'mrkdwn',
-          text: `*Review State:* ${reviewState} ${
-            reviewState === 'APPROVED'
+          text: `*Review State:* ${reviewState.replace('_', ' ')} ${
+            reviewState === ReviewStates.APPROVED
               ? ':large_green_circle:'
-              : reviewState === 'CHANGES_REQUESTED'
+              : reviewState === ReviewStates.CHANGES_REQUESTED
               ? ':red_circle:'
               : ':page_with_curl:'
           }`

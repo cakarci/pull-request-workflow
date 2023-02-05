@@ -7,6 +7,10 @@ import {getReviews} from './get-reviews'
 const token = core.getInput('github-token')
 const octokit = github.getOctokit(token)
 
+export type OctokitListReviewsResponseType = Awaited<
+  ReturnType<typeof octokit.rest.pulls.listReviews>
+>
+
 export const githubService = {
   createComment: createComment(octokit),
   requestReviewers: requestReviewers(octokit),

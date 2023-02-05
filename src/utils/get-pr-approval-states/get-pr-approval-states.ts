@@ -1,9 +1,8 @@
-import {githubService} from '../../api/github'
+import {githubService, OctokitListReviewsResponseType} from '../../api/github'
 import {requestTwoReviewers} from '../request-two-reviewers'
-import {components} from '@octokit/openapi-types'
+import {ReviewStates} from '../../constants'
 
-type State = 'APPROVED' | 'COMMENTED' | 'CHANGES_REQUESTED'
-type UserWithState = {user: string; state: State}
+type UserWithState = {user: string; state: ReviewStates}
 export const getPrApprovalStates = async (
   {
     prAuthor,
@@ -50,11 +49,11 @@ export const getPrApprovalStates = async (
 }
 
 const getReviewers = (
-  reviews: components['schemas']['pull-request-review'][]
+  reviews: OctokitListReviewsResponseType['data']
 ): UserWithState[] => {
   return reviews.map(r => ({
     user: r?.user?.login as string,
-    state: r.state as State
+    state: r.state as ReviewStates
   }))
 }
 
@@ -66,18 +65,18 @@ const getLatestReviewOfUsers = (
 } => {
   const getLatestReviewOfUser = (user: string): UserWithState | undefined =>
     reviews
-      .filter(r => r.state !== 'COMMENTED')
+      .filter(r => r.state !== ReviewStates.COMMENTED)
       .filter(r => r.user === user)
       .pop()
   const approvers: string[] = []
   const changeRequesters: string[] = []
   for (const review of reviews) {
     const latestReview = getLatestReviewOfUser(review.user)
-    if (latestReview?.state === 'APPROVED') {
+    if (latestReview?.state === ReviewStates.APPROVED) {
       !approvers.includes(latestReview.user) &&
         approvers.push(latestReview.user)
     }
-    if (latestReview?.state === 'CHANGES_REQUESTED') {
+    if (latestReview?.state === ReviewStates.CHANGES_REQUESTED) {
       !changeRequesters.includes(latestReview.user) &&
         changeRequesters.push(latestReview.user)
     }

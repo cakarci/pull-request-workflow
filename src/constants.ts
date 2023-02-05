@@ -5,6 +5,12 @@ export enum GithubEventNames {
   'ISSUE_COMMENT' = 'issue_comment'
 }
 
+export enum ReviewStates {
+  'CHANGES_REQUESTED' = 'CHANGES_REQUESTED',
+  'APPROVED' = 'APPROVED',
+  'COMMENTED' = 'COMMENTED'
+}
+
 export const allowedEventNames = [
   GithubEventNames.PULL_REQUEST,
   GithubEventNames.PULL_REQUEST_REVIEW,
