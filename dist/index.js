@@ -841,7 +841,6 @@ const generatePullRequestReviewRequestedMessage = (githubContext, githubSlackUse
                     text: ':arrow_right: Review PR',
                     emoji: true
                 },
-                value: 'click_me_123',
                 url: `${pull_request === null || pull_request === void 0 ? void 0 : pull_request.html_url}/files`,
                 action_id: 'button-action'
             }
@@ -1018,13 +1017,13 @@ exports.generateGreetingMessage = void 0;
 const __1 = __nccwpck_require__(1606);
 const generateGreetingMessage = (githubContext, githubSlackUserMapper, userToGreet) => {
     if (userToGreet) {
-        return `Hi ${(0, __1.getUserToLog)(githubSlackUserMapper, userToGreet)} :wave:`;
+        return `Hi ${(0, __1.getUserToLog)(githubSlackUserMapper, userToGreet)} :wave:\n`;
     }
     const { pull_request, issue, requested_reviewer } = githubContext.payload;
     const pullRequestReviewerUser = requested_reviewer === null || requested_reviewer === void 0 ? void 0 : requested_reviewer.login;
     const pullRequestOwnerUser = (pull_request === null || pull_request === void 0 ? void 0 : pull_request.user.login) || (issue === null || issue === void 0 ? void 0 : issue.user.login);
     if (pullRequestReviewerUser) {
-        return `Hi ${(0, __1.getUserToLog)(githubSlackUserMapper, pullRequestReviewerUser)} :wave:`;
+        return `Hi ${(0, __1.getUserToLog)(githubSlackUserMapper, pullRequestReviewerUser)} :wave:\n`;
     }
     else {
         return !(0, __1.isPrOwnerAndEventActorSame)(githubContext)
