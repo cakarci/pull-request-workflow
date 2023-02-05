@@ -5,12 +5,13 @@
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write '**/*.ts'",
-    "format-check": "prettier --check '**/*.ts'",
+    "format": "prettier --write '**/*.{ts,md,yml,json}'",
+    "format-check": "prettier --check '**/*.{ts,md,yml,json}'",
     "lint": "eslint src/**/*.ts",
     "package": "ncc build --source-map --license licenses.txt",
     "test": "jest",
-    "all": "yarn build && yarn format && yarn lint && yarn package && yarn test",
+    "precommit": "yarn format && yarn lint",
+    "prepush": "yarn build && yarn package && yarn test",
     "prepare": "husky install"
   },
   "repository": "https://github.com/cakarci/pull-request-workflow.git",

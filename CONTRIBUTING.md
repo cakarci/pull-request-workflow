@@ -12,7 +12,6 @@ Please note that this project is released with a [Contributor Code of Conduct][c
 
 ## Submitting a pull request
 
-
 1. [Fork][fork] and clone the repository
 2. Create a new branch: `git checkout -b my-branch-name`
 3. Install dependencies `yarn install`

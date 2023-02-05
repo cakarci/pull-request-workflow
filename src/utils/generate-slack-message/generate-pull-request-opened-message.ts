@@ -31,7 +31,17 @@ export const generatePullRequestOpenedMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `:hourglass_flowing_sand: It is time to add your reviews <${pull_request?.html_url}/files|here>`
+        text: ':hourglass_flowing_sand: It is time to add your reviews'
+      },
+      accessory: {
+        type: 'button',
+        text: {
+          type: 'plain_text',
+          text: ':arrow_right: Review PR',
+          emoji: true
+        },
+        url: `${pull_request?.html_url}/files`,
+        action_id: 'button-action'
       }
     },
     {

@@ -17,20 +17,14 @@ import {
   requestTwoReviewers
 } from './utils'
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
-import {GithubEventNames} from './constants'
+import {allowedEventNames, GithubEventNames} from './constants'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
-  const eventNames = [
-    GithubEventNames.PULL_REQUEST,
-    GithubEventNames.PULL_REQUEST_REVIEW,
-    GithubEventNames.PULL_REQUEST_REVIEW_COMMENT,
-    GithubEventNames.ISSUE_COMMENT
-  ]
   try {
     const {actor, repo, eventName, payload} = github.context
-    if (!eventNames.includes(eventName as GithubEventNames)) {
+    if (!allowedEventNames.includes(eventName as GithubEventNames)) {
       core.warning(
-        `eventName should be ${eventNames.join(
+        `eventName should be ${allowedEventNames.join(
           ','
         )} however received: ${eventName} `
       )
@@ -64,6 +58,9 @@ export const PullRequestWorkflow = async (): Promise<void> => {
     } else {
       const thread = await getPullRequestThread()
       if (!thread?.ts) {
+        core.warning(
+          `The Slack thread is not found for the pull request ${payload.pull_request?.number}. Please make sure that your Slack integration `
+        )
         return
       }
       if (
