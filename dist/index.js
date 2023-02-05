@@ -416,7 +416,7 @@ exports.postMessage = postMessage;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.allowedEventNames = exports.GithubEventNames = void 0;
+exports.allowedEventNames = exports.ReviewStates = exports.GithubEventNames = void 0;
 var GithubEventNames;
 (function (GithubEventNames) {
     GithubEventNames["PULL_REQUEST"] = "pull_request";
@@ -424,6 +424,12 @@ var GithubEventNames;
     GithubEventNames["PULL_REQUEST_REVIEW_COMMENT"] = "pull_request_review_comment";
     GithubEventNames["ISSUE_COMMENT"] = "issue_comment";
 })(GithubEventNames = exports.GithubEventNames || (exports.GithubEventNames = {}));
+var ReviewStates;
+(function (ReviewStates) {
+    ReviewStates["CHANGES_REQUESTED"] = "CHANGES_REQUESTED";
+    ReviewStates["APPROVED"] = "APPROVED";
+    ReviewStates["COMMENTED"] = "COMMENTED";
+})(ReviewStates = exports.ReviewStates || (exports.ReviewStates = {}));
 exports.allowedEventNames = [
     GithubEventNames.PULL_REQUEST,
     GithubEventNames.PULL_REQUEST_REVIEW,
@@ -861,9 +867,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generatePullRequestReviewSubmittedMessage = void 0;
 const get_user_to_log_1 = __nccwpck_require__(3070);
 const partial_messages_1 = __nccwpck_require__(8052);
+const constants_1 = __nccwpck_require__(5105);
 const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUserMapper) => {
     const { review } = githubContext.payload;
-    const reviewState = (review === null || review === void 0 ? void 0 : review.state).toUpperCase().replace('_', ' ');
+    const reviewState = (review === null || review === void 0 ? void 0 : review.state).toUpperCase();
     return [
         {
             type: 'section',
@@ -877,9 +884,9 @@ const generatePullRequestReviewSubmittedMessage = (githubContext, githubSlackUse
             elements: [
                 {
                     type: 'mrkdwn',
-                    text: `*Review State:* ${reviewState} ${reviewState === 'APPROVED'
+                    text: `*Review State:* ${reviewState.replace('_', ' ')} ${reviewState === constants_1.ReviewStates.APPROVED
                         ? ':large_green_circle:'
-                        : reviewState === 'CHANGES_REQUESTED'
+                        : reviewState === constants_1.ReviewStates.CHANGES_REQUESTED
                             ? ':red_circle:'
                             : ':page_with_curl:'}`
                 }
@@ -1146,6 +1153,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getPrApprovalStates = void 0;
 const github_1 = __nccwpck_require__(3273);
 const request_two_reviewers_1 = __nccwpck_require__(7197);
+const constants_1 = __nccwpck_require__(5105);
 const getPrApprovalStates = ({ prAuthor, githubUserNames, requestedReviewers }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
     const reviews = yield github_1.githubService.getReviews({
         owner,
@@ -1179,18 +1187,18 @@ const getReviewers = (reviews) => {
 };
 const getLatestReviewOfUsers = (reviews) => {
     const getLatestReviewOfUser = (user) => reviews
-        .filter(r => r.state !== 'COMMENTED')
+        .filter(r => r.state !== constants_1.ReviewStates.COMMENTED)
         .filter(r => r.user === user)
         .pop();
     const approvers = [];
     const changeRequesters = [];
     for (const review of reviews) {
         const latestReview = getLatestReviewOfUser(review.user);
-        if ((latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) === 'APPROVED') {
+        if ((latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) === constants_1.ReviewStates.APPROVED) {
             !approvers.includes(latestReview.user) &&
                 approvers.push(latestReview.user);
         }
-        if ((latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) === 'CHANGES_REQUESTED') {
+        if ((latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) === constants_1.ReviewStates.CHANGES_REQUESTED) {
             !changeRequesters.includes(latestReview.user) &&
                 changeRequesters.push(latestReview.user);
         }
