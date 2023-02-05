@@ -12,6 +12,7 @@
     "test": "jest",
     "precommit": "yarn format && yarn lint",
     "prepush": "yarn build && yarn package && yarn test",
+    "all": "yarn build && yarn format && yarn lint && yarn package && yarn test",
     "prepare": "husky install"
   },
   "repository": "https://github.com/cakarci/pull-request-workflow.git",
