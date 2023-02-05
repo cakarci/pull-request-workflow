@@ -1162,7 +1162,7 @@ const getPullRequestReviewStateUsers = ({ prAuthor, githubUserNames, requestedRe
         pull_number
     });
     const reviewersWithState = getReviewers(reviews);
-    const { APPROVED, CHANGES_REQUESTED, COMMENTED } = getReviewStateUsersMap(reviewersWithState);
+    const { APPROVED, CHANGES_REQUESTED, COMMENTED } = getReviewStateUsersMap(reviewersWithState, prAuthor);
     if (requestedReviewers.length === 0 && APPROVED.length < 2) {
         requestedReviewers = yield (0, request_two_reviewers_1.requestTwoReviewers)([prAuthor, ...APPROVED, ...CHANGES_REQUESTED], githubUserNames, {
             owner,
@@ -1189,7 +1189,7 @@ const getReviewers = (reviews) => {
         });
     });
 };
-const getReviewStateUsersMap = (reviews) => {
+const getReviewStateUsersMap = (reviews, prAuthor) => {
     const getLatestReviewOfUser = (user) => reviews
         .filter(r => r.state !== constants_1.ReviewStates.COMMENTED)
         .filter(r => r.user === user)
@@ -1200,6 +1200,7 @@ const getReviewStateUsersMap = (reviews) => {
     const reducer = (acc, review) => {
         if (isUserOnlyCommented(review.user)) {
             !acc[constants_1.ReviewStates.COMMENTED].includes(review.user) &&
+                review.user !== prAuthor &&
                 acc[constants_1.ReviewStates.COMMENTED].push(review.user);
         }
         const latestReview = getLatestReviewOfUser(review.user);
