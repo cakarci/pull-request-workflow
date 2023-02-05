@@ -49,69 +49,69 @@ A GitHub action that creates a workflow with **_four eyes principle_**
 
 - ### Create `pull-request-workflow.yml` file with the following content under `./github/workflows`
 
-```yaml
-name: 'pull-request-workflow'
+  - ```yaml
+    name: 'pull-request-workflow'
 
-on:
-  pull_request:
-    types:
-      [
-        assigned,
-        unassigned,
-        labeled,
-        unlabeled,
-        opened,
-        edited,
-        closed,
-        reopened,
-        synchronize,
-        converted_to_draft,
-        ready_for_review,
-        locked,
-        unlocked,
-        review_requested,
-        review_request_removed,
-        auto_merge_enabled,
-        auto_merge_disabled
-      ]
-  pull_request_review:
-    types: [submitted, edited, dismissed]
-  pull_request_review_comment:
-    types: [created, edited, deleted]
-  issue_comment:
-    types: [created, edited, deleted]
+    on:
+      pull_request:
+        types:
+          [
+            assigned,
+            unassigned,
+            labeled,
+            unlabeled,
+            opened,
+            edited,
+            closed,
+            reopened,
+            synchronize,
+            converted_to_draft,
+            ready_for_review,
+            locked,
+            unlocked,
+            review_requested,
+            review_request_removed,
+            auto_merge_enabled,
+            auto_merge_disabled
+          ]
+      pull_request_review:
+        types: [submitted, edited, dismissed]
+      pull_request_review_comment:
+        types: [created, edited, deleted]
+      issue_comment:
+        types: [created, edited, deleted]
 
-jobs:
-  pull_request_workflow:
-    runs-on: ubuntu-latest
-    name: A job that notifies slack on PR events
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Run pull request workflow
-        uses: cakarci/pull-request-workflow@v1
-        with:
-          github-token: ${{ secrets.GH_TOKEN }}
-          slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
-          slack-channel-id: '{Your public slack channel id}'
-```
+    jobs:
+      pull_request_workflow:
+        runs-on: ubuntu-latest
+        name: A job that notifies slack on PR events
+        steps:
+          - name: Checkout
+            uses: actions/checkout@v3
+          - name: Run pull request workflow
+            uses: cakarci/pull-request-workflow@v1
+            with:
+              github-token: ${{ secrets.GH_TOKEN }}
+              slack-token: ${{ secrets.SLACK_BOT_TOKEN }}
+              slack-channel-id: '{Your public slack channel id}'
+    ```
 
 - ### Create `pull-request-workflow.json` file with the following content under `./github` folder
 
-```json
-{
-  "teamName": "Consumer Experience",
-  "githubUserNames": ["pcakarci", "scakarci", "cakarci"],
-  "githubSlackUserMapper": {
-    "pcakarci": "U04L1AQ8H8U",
-    "scakarci": "U04LNHEVA48",
-    "cakarci": "U035MNNF8LW"
-  }
-}
-```
+  - ```json
+    {
+      "teamName": "Consumer Experience",
+      "githubUserNames": ["pcakarci", "scakarci", "cakarci"],
+      "githubSlackUserMapper": {
+        "pcakarci": "U04L1AQ8H8U",
+        "scakarci": "U04LNHEVA48",
+        "cakarci": "U035MNNF8LW"
+      }
+    }
+    ```
 
-- `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
-- All the users defined in the `githubUserNames` list should have read/write access to the repository
+  - `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
+  - All the users defined in the `githubUserNames` list should have read/write access to the repository
 
 - ### Create a Slack app with both user
   - Create a **Public Slack channel** and get the `Channel ID: C04LNJJUCKS` from the details of the channel
