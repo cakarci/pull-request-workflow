@@ -14,14 +14,15 @@ export const requestTwoReviewers = async (
   if (!firstReviewer) {
     return []
   }
+  const reviewers = secondReviewer
+    ? [firstReviewer, secondReviewer]
+    : [firstReviewer]
   await githubService.requestReviewers({
     owner,
     repo,
     pull_number,
-    reviewers: secondReviewer
-      ? [firstReviewer, secondReviewer]
-      : [firstReviewer]
+    reviewers
   })
 
-  return [firstReviewer, secondReviewer]
+  return reviewers
 }
