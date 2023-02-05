@@ -59,7 +59,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       const thread = await getPullRequestThread()
       if (!thread?.ts) {
         core.warning(
-          `The Slack thread is not found for the pull request ${payload.pull_request?.number}. Please make sure that your Slack integration `
+          `The Slack thread is not found for the pull request ${payload.pull_request?.number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`
         )
         return
       }
