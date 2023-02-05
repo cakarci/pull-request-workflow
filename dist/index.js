@@ -532,7 +532,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
         else {
             const thread = yield getPullRequestThread();
             if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
-                core.warning(`The Slack thread is not found for the pull request ${(_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.number}. Please make sure that your Slack integration `);
+                core.warning(`The Slack thread is not found for the pull request ${(_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`);
                 return;
             }
             if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
