@@ -939,7 +939,7 @@ const generateSecondReviewerMessage = (githubContext, githubSlackUserMapper, sec
             type: 'section',
             text: {
                 type: 'mrkdwn',
-                text: `Hi ${(0, partial_messages_1.generateGreetingMessage)(githubContext, githubSlackUserMapper, secondReviewer)}You are assigned as a *second code reviewer*,`
+                text: `${(0, partial_messages_1.generateGreetingMessage)(githubContext, githubSlackUserMapper, secondReviewer)}You are assigned as a *second code reviewer*,`
             }
         },
         {
