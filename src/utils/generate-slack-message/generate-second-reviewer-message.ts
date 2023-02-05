@@ -13,7 +13,7 @@ export const generateSecondReviewerMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `Hi ${generateGreetingMessage(
+        text: `${generateGreetingMessage(
           githubContext,
           githubSlackUserMapper,
           secondReviewer
