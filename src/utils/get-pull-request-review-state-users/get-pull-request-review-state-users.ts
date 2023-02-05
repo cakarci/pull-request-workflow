@@ -29,8 +29,10 @@ export const getPullRequestReviewStateUsers = async (
   })
 
   const reviewersWithState = getReviewers(reviews)
-  const {APPROVED, CHANGES_REQUESTED, COMMENTED} =
-    getReviewStateUsersMap(reviewersWithState)
+  const {APPROVED, CHANGES_REQUESTED, COMMENTED} = getReviewStateUsersMap(
+    reviewersWithState,
+    prAuthor
+  )
 
   if (requestedReviewers.length === 0 && APPROVED.length < 2) {
     requestedReviewers = await requestTwoReviewers(
@@ -64,7 +66,8 @@ const getReviewers = (
 }
 
 const getReviewStateUsersMap = (
-  reviews: UserWithState[]
+  reviews: UserWithState[],
+  prAuthor: string
 ): ReviewStateUsersMap => {
   const getLatestReviewOfUser = (user: string): UserWithState | undefined =>
     reviews
@@ -83,6 +86,7 @@ const getReviewStateUsersMap = (
   ): ReviewStateUsersMap => {
     if (isUserOnlyCommented(review.user)) {
       !acc[ReviewStates.COMMENTED].includes(review.user) &&
+        review.user !== prAuthor &&
         acc[ReviewStates.COMMENTED].push(review.user)
     }
     const latestReview = getLatestReviewOfUser(review.user)
