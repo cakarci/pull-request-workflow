@@ -16,7 +16,8 @@ A GitHub action that creates a workflow with **_four eyes principle_**
 - If there is no change requested then the PR is ready to be merged :rocket:
 - It keeps your Slack channel as clean as possible as notifications related to a specific PR starts a thread and all the related activities of the pull request are sent as a thread reply [Check it here](https://user-images.githubusercontent.com/4185569/214591718-d3e19dbe-2603-4451-8fea-30576ec50993.png)
 
-![Screenshot 2023-01-25 at 15 26 02](https://user-images.githubusercontent.com/4185569/214591195-1dc5223f-c08e-42e1-b572-1f8eb77eaf43.png)
+![Screenshot 2023-02-05 at 20 15 29](https://user-images.githubusercontent.com/4185569/216840005-7a055f42-9afa-44f8-924f-b1a87c76b469.png)
+
 
 ## Inputs
 
