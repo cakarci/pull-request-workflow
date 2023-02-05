@@ -128,4 +128,3 @@ A GitHub action that creates a workflow with **_four eyes principle_**
 - To test the workflow run, create a PR in your repository and check if the notifications are sent to your public Slack channel :boom:
 
 Developed with ❤️ by [Salih Cakarci](https://github.com/cakarci)
-
