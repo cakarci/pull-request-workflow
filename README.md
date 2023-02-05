@@ -110,7 +110,7 @@ A GitHub action that creates a workflow with **_four eyes principle_**
     }
     ```
 
-  - `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` (How to get Slack Member ID)
+  - `githubSlackUserMapper` object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` [How to get Slack Member ID](https://user-images.githubusercontent.com/4185569/216829550-be52aa6e-4d01-4e98-b5f5-5f27d63cb431.png)
   - All the users defined in the `githubUserNames` list should have read/write access to the repository
 
 - ### Create a Slack app with both user
@@ -128,3 +128,4 @@ A GitHub action that creates a workflow with **_four eyes principle_**
 - To test the workflow run, create a PR in your repository and check if the notifications are sent to your public Slack channel :boom:
 
 Developed with ❤️ by [Salih Cakarci](https://github.com/cakarci)
+
