@@ -16,8 +16,8 @@
     "prepare": "husky install"
   },
   "lint-staged": {
-    "*.{ts}": "yarn lint",
-    "*.{md,yml}": "yarn format"
+    "*.{ts}": "yarn precommit",
+    "*.{md,yml,json}": "yarn format"
   },
   "repository": "https://github.com/cakarci/pull-request-workflow.git",
   "author": "cakarci <salihcakarci@gmail.com>",
