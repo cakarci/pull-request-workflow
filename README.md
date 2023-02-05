@@ -18,7 +18,6 @@ A GitHub action that creates a workflow with **_four eyes principle_**
 
 ![Screenshot 2023-02-05 at 20 15 29](https://user-images.githubusercontent.com/4185569/216840005-7a055f42-9afa-44f8-924f-b1a87c76b469.png)
 
-
 ## Inputs
 
 ### `github-token`

@@ -594,7 +594,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                     blocks: (0, utils_1.generatePullRequestReviewSubmittedMessage)(github.context, githubSlackUserMapper)
                 });
-                const { approvers, changeRequesters, secondApprovers } = yield (0, utils_1.getPrApprovalStates)({
+                const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS, COMMENTED } = yield (0, utils_1.getPullRequestReviewStateUsers)({
                     prAuthor: (_e = github.context.payload.pull_request) === null || _e === void 0 ? void 0 : _e.user.login,
                     githubUserNames,
                     requestedReviewers: payload.pull_request.requested_reviewers.map((r) => r.login)
@@ -604,19 +604,20 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     pull_number: (_f = payload.pull_request) === null || _f === void 0 ? void 0 : _f.number
                 });
                 core.info(JSON.stringify({
-                    approvers,
-                    changeRequesters,
-                    secondApprovers
+                    APPROVED,
+                    CHANGES_REQUESTED,
+                    SECOND_APPROVERS,
+                    COMMENTED
                 }));
-                if (((_g = payload.review) === null || _g === void 0 ? void 0 : _g.state) === 'approved') {
-                    if (approvers.length === 1) {
+                if (((_g = payload.review) === null || _g === void 0 ? void 0 : _g.state.toUpperCase()) === constants_1.ReviewStates.APPROVED) {
+                    if (APPROVED.length === 1) {
                         yield slack_1.Slack.postMessage({
                             channel: core.getInput('slack-channel-id'),
                             thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                            blocks: (0, utils_1.generateSecondReviewerMessage)(github.context, githubSlackUserMapper, (0, utils_1.getRandomItemFromArray)(secondApprovers))
+                            blocks: (0, utils_1.generateSecondReviewerMessage)(github.context, githubSlackUserMapper, (0, utils_1.getRandomItemFromArray)(SECOND_APPROVERS))
                         });
                     }
-                    if (approvers.length >= 2 && changeRequesters.length === 0) {
+                    if (APPROVED.length >= 2 && CHANGES_REQUESTED.length === 0) {
                         yield slack_1.Slack.postMessage({
                             channel: core.getInput('slack-channel-id'),
                             thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
@@ -1135,7 +1136,7 @@ __exportStar(__nccwpck_require__(7363), exports);
 
 /***/ }),
 
-/***/ 3860:
+/***/ 9438:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1150,32 +1151,35 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getPrApprovalStates = void 0;
+exports.getPullRequestReviewStateUsers = void 0;
 const github_1 = __nccwpck_require__(3273);
 const request_two_reviewers_1 = __nccwpck_require__(7197);
 const constants_1 = __nccwpck_require__(5105);
-const getPrApprovalStates = ({ prAuthor, githubUserNames, requestedReviewers }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
+const getPullRequestReviewStateUsers = ({ prAuthor, githubUserNames, requestedReviewers }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
     const reviews = yield github_1.githubService.getReviews({
         owner,
         repo,
         pull_number
     });
     const reviewersWithState = getReviewers(reviews);
-    const { approvers, changeRequesters } = getLatestReviewOfUsers(reviewersWithState);
-    if (requestedReviewers.length === 0 && approvers.length < 2) {
-        requestedReviewers = yield (0, request_two_reviewers_1.requestTwoReviewers)([prAuthor, ...approvers, ...changeRequesters], githubUserNames, {
+    const { APPROVED, CHANGES_REQUESTED, COMMENTED } = getReviewStateUsersMap(reviewersWithState, prAuthor);
+    if (requestedReviewers.length === 0 && APPROVED.length < 2) {
+        requestedReviewers = yield (0, request_two_reviewers_1.requestTwoReviewers)([prAuthor, ...APPROVED, ...CHANGES_REQUESTED], githubUserNames, {
             owner,
             repo,
             pull_number
         });
     }
     return {
-        secondApprovers: [...new Set([...requestedReviewers, ...changeRequesters])],
-        approvers,
-        changeRequesters
+        SECOND_APPROVERS: [
+            ...new Set([...requestedReviewers, ...CHANGES_REQUESTED])
+        ],
+        APPROVED,
+        CHANGES_REQUESTED,
+        COMMENTED
     };
 });
-exports.getPrApprovalStates = getPrApprovalStates;
+exports.getPullRequestReviewStateUsers = getPullRequestReviewStateUsers;
 const getReviewers = (reviews) => {
     return reviews.map(r => {
         var _a;
@@ -1185,34 +1189,38 @@ const getReviewers = (reviews) => {
         });
     });
 };
-const getLatestReviewOfUsers = (reviews) => {
+const getReviewStateUsersMap = (reviews, prAuthor) => {
     const getLatestReviewOfUser = (user) => reviews
         .filter(r => r.state !== constants_1.ReviewStates.COMMENTED)
         .filter(r => r.user === user)
         .pop();
-    const approvers = [];
-    const changeRequesters = [];
-    for (const review of reviews) {
+    const isUserOnlyCommented = (user) => reviews
+        .filter(r => r.user === user)
+        .every(r => r.state === constants_1.ReviewStates.COMMENTED);
+    const reducer = (acc, review) => {
+        if (isUserOnlyCommented(review.user)) {
+            !acc[constants_1.ReviewStates.COMMENTED].includes(review.user) &&
+                review.user !== prAuthor &&
+                acc[constants_1.ReviewStates.COMMENTED].push(review.user);
+        }
         const latestReview = getLatestReviewOfUser(review.user);
-        if ((latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) === constants_1.ReviewStates.APPROVED) {
-            !approvers.includes(latestReview.user) &&
-                approvers.push(latestReview.user);
+        if (latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) {
+            !acc[latestReview.state].includes(review.user) &&
+                acc[latestReview.state].push(review.user);
         }
-        if ((latestReview === null || latestReview === void 0 ? void 0 : latestReview.state) === constants_1.ReviewStates.CHANGES_REQUESTED) {
-            !changeRequesters.includes(latestReview.user) &&
-                changeRequesters.push(latestReview.user);
-        }
-    }
-    return {
-        approvers,
-        changeRequesters
+        return acc;
     };
+    return reviews.reduce(reducer, {
+        [constants_1.ReviewStates.APPROVED]: [],
+        [constants_1.ReviewStates.CHANGES_REQUESTED]: [],
+        [constants_1.ReviewStates.COMMENTED]: []
+    });
 };
 
 
 /***/ }),
 
-/***/ 5593:
+/***/ 7173:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1232,7 +1240,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-__exportStar(__nccwpck_require__(3860), exports);
+__exportStar(__nccwpck_require__(9438), exports);
 
 
 /***/ }),
@@ -1347,7 +1355,7 @@ __exportStar(__nccwpck_require__(605), exports);
 __exportStar(__nccwpck_require__(7613), exports);
 __exportStar(__nccwpck_require__(2184), exports);
 __exportStar(__nccwpck_require__(3070), exports);
-__exportStar(__nccwpck_require__(5593), exports);
+__exportStar(__nccwpck_require__(7173), exports);
 __exportStar(__nccwpck_require__(7197), exports);
 __exportStar(__nccwpck_require__(6017), exports);
 
@@ -1448,15 +1456,16 @@ const requestTwoReviewers = (skip, githubUserNames, { owner, repo, pull_number }
     if (!firstReviewer) {
         return [];
     }
+    const reviewers = secondReviewer
+        ? [firstReviewer, secondReviewer]
+        : [firstReviewer];
     yield github_1.githubService.requestReviewers({
         owner,
         repo,
         pull_number,
-        reviewers: secondReviewer
-            ? [firstReviewer, secondReviewer]
-            : [firstReviewer]
+        reviewers
     });
-    return [firstReviewer, secondReviewer];
+    return reviewers;
 });
 exports.requestTwoReviewers = requestTwoReviewers;
 

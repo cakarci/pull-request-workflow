@@ -2,10 +2,12 @@
 
 ## Supported Versions
 
-| Version | Supported          |
-| ------- | ------------------ |
-| v1      | :white_check_mark: |
-| < 1.8.2 | :x:                |
+| Version | Example                                      | Supported          |
+| ------- | -------------------------------------------- | ------------------ |
+| v1      | `uses: cakarci/pull-request-workflow@v1`     | :white_check_mark: |
+| 1.x.x   | `uses: cakarci/pull-request-workflow@v1.9.2` | :x:                |
+
+Please always use `v1` tag instead of `v1.x.x` to make sure that the version you are using is always supported with the latest security updates
 
 ## Reporting a Vulnerability
 

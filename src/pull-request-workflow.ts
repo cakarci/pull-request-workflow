@@ -12,12 +12,12 @@ import {
   generateReadyToMergeMessage,
   generateSecondReviewerMessage,
   getFileContent,
-  getPrApprovalStates,
+  getPullRequestReviewStateUsers,
   getRandomItemFromArray,
   requestTwoReviewers
 } from './utils'
 import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
-import {allowedEventNames, GithubEventNames} from './constants'
+import {allowedEventNames, GithubEventNames, ReviewStates} from './constants'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
   try {
@@ -150,8 +150,8 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             githubSlackUserMapper
           )
         })
-        const {approvers, changeRequesters, secondApprovers} =
-          await getPrApprovalStates(
+        const {APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS, COMMENTED} =
+          await getPullRequestReviewStateUsers(
             {
               prAuthor: github.context.payload.pull_request?.user.login,
               githubUserNames,
@@ -168,26 +168,27 @@ export const PullRequestWorkflow = async (): Promise<void> => {
 
         core.info(
           JSON.stringify({
-            approvers,
-            changeRequesters,
-            secondApprovers
+            APPROVED,
+            CHANGES_REQUESTED,
+            SECOND_APPROVERS,
+            COMMENTED
           })
         )
 
-        if (payload.review?.state === 'approved') {
-          if (approvers.length === 1) {
+        if (payload.review?.state.toUpperCase() === ReviewStates.APPROVED) {
+          if (APPROVED.length === 1) {
             await Slack.postMessage({
               channel: core.getInput('slack-channel-id'),
               thread_ts: thread?.ts,
               blocks: generateSecondReviewerMessage(
                 github.context,
                 githubSlackUserMapper,
-                getRandomItemFromArray(secondApprovers)
+                getRandomItemFromArray(SECOND_APPROVERS)
               )
             })
           }
 
-          if (approvers.length >= 2 && changeRequesters.length === 0) {
+          if (APPROVED.length >= 2 && CHANGES_REQUESTED.length === 0) {
             await Slack.postMessage({
               channel: core.getInput('slack-channel-id'),
               thread_ts: thread?.ts,
