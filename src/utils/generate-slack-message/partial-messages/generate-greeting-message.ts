@@ -7,7 +7,7 @@ export const generateGreetingMessage = (
   userToGreet?: string
 ): string => {
   if (userToGreet) {
-    return `Hi ${getUserToLog(githubSlackUserMapper, userToGreet)} :wave:`
+    return `Hi ${getUserToLog(githubSlackUserMapper, userToGreet)} :wave:\n`
   }
   const {pull_request, issue, requested_reviewer} = githubContext.payload
   const pullRequestReviewerUser = requested_reviewer?.login
@@ -17,7 +17,7 @@ export const generateGreetingMessage = (
     return `Hi ${getUserToLog(
       githubSlackUserMapper,
       pullRequestReviewerUser
-    )} :wave:`
+    )} :wave:\n`
   } else {
     return !isPrOwnerAndEventActorSame(githubContext)
       ? `Hi ${getUserToLog(

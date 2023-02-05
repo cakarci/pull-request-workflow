@@ -40,7 +40,6 @@ export const generatePullRequestReviewRequestedMessage = (
           text: ':arrow_right: Review PR',
           emoji: true
         },
-        value: 'click_me_123',
         url: `${pull_request?.html_url}/files`,
         action_id: 'button-action'
       }
