@@ -1,11 +1,11 @@
 import {Context} from '@actions/github/lib/context'
 import {Block, KnownBlock} from '@slack/types'
-import {getUserToLog} from '../get-user-to-log'
 import {generateGreetingMessage} from './partial-messages'
 
-export const generatePullRequestReviewRequestedMessage = (
+export const generateSecondReviewerMessage = (
   githubContext: Context,
-  githubSlackUserMapper: Record<string, string>
+  githubSlackUserMapper: Record<string, string>,
+  secondReviewer: string
 ): (KnownBlock | Block)[] => {
   const {pull_request} = githubContext.payload
   return [
@@ -15,14 +15,22 @@ export const generatePullRequestReviewRequestedMessage = (
         type: 'mrkdwn',
         text: `${generateGreetingMessage(
           githubContext,
-          githubSlackUserMapper
-        )}A new review was requested from you for the <${
-          pull_request?.html_url
-        }|pull request> by ${getUserToLog(
           githubSlackUserMapper,
-          githubContext.actor
-        )}.`
+          secondReviewer
+        )}You are assigned as a *second code reviewer*,`
       }
+    },
+    {
+      type: 'divider'
+    },
+    {
+      type: 'context',
+      elements: [
+        {
+          type: 'mrkdwn',
+          text: `• Please ensure all the review comments from the  *first code reviewer* have been addressed properly \n• If required, please add your own review comments as well`
+        }
+      ]
     },
     {
       type: 'divider'

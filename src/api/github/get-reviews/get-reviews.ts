@@ -1,4 +1,5 @@
 import {GitHub} from '@actions/github/lib/utils'
+import {OctokitListReviewsResponseType} from '../index'
 
 type Parameters = {
   owner: string
@@ -8,11 +9,12 @@ type Parameters = {
 export const getReviews = (octokit: InstanceType<typeof GitHub>) => {
   return async ({owner, repo, pull_number}: Parameters) => {
     try {
-      const {data} = await octokit.rest.pulls.listReviews({
-        owner,
-        repo,
-        pull_number
-      })
+      const {data}: OctokitListReviewsResponseType =
+        await octokit.rest.pulls.listReviews({
+          owner,
+          repo,
+          pull_number
+        })
       return data
     } catch (error) {
       return Promise.reject(error)

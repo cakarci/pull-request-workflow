@@ -1,6 +1,6 @@
 import {Context} from '@actions/github/lib/context'
 import {Block, KnownBlock} from '@slack/types'
-import {getUserToLog} from '../get-user-to-log'
+import {generateGreetingMessage} from './partial-messages'
 
 export const generateReadyToMergeMessage = (
   githubContext: Context,
@@ -12,10 +12,10 @@ export const generateReadyToMergeMessage = (
       type: 'section',
       text: {
         type: 'mrkdwn',
-        text: `Hi ${getUserToLog(
-          githubSlackUserMapper,
-          pull_request?.user.login
-        )} :wave: your <${
+        text: `${generateGreetingMessage(
+          githubContext,
+          githubSlackUserMapper
+        )}Your <${
           pull_request?.html_url
         }|pull request>  ready to be merged :rocket:`
       }
