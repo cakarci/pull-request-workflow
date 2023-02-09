@@ -18,6 +18,7 @@ import {
   requestTwoReviewers
 } from './utils'
 import {allowedEventNames, GithubEventNames, ReviewStates} from './constants'
+import {pullRequestReminder} from './services'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
   try {
@@ -30,7 +31,14 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       )
       return
     }
-    const {githubUserNames, githubSlackUserMapper} = await getFileContent()
+    const {githubUserNames, githubSlackUserMapper, remindAfter} =
+      await getFileContent()
+    if (eventName === GithubEventNames.SCHEDULE) {
+      await pullRequestReminder(
+        {githubSlackUserMapper, remindAfter},
+        {owner: repo.owner, repo: repo.repo}
+      )
+    }
     if (
       eventName === GithubEventNames.PULL_REQUEST &&
       payload.action === 'opened' &&
