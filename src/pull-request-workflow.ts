@@ -13,10 +13,10 @@ import {
   generateSecondReviewerMessage,
   getFileContent,
   getPullRequestReviewStateUsers,
+  getPullRequestThread,
   getRandomItemFromArray,
   requestTwoReviewers
 } from './utils'
-import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 import {allowedEventNames, GithubEventNames, ReviewStates} from './constants'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
@@ -56,7 +56,12 @@ export const PullRequestWorkflow = async (): Promise<void> => {
         )
       })
     } else {
-      const thread = await getPullRequestThread()
+      const thread = await getPullRequestThread({
+        repoName: github.context.payload.repository?.name,
+        prNumber:
+          github.context.payload.pull_request?.number ||
+          github.context.payload.issue?.number
+      })
       if (!thread?.ts) {
         core.warning(
           `The Slack thread is not found for the pull request ${payload.pull_request?.number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`
@@ -216,15 +221,4 @@ export const PullRequestWorkflow = async (): Promise<void> => {
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
-}
-
-const getPullRequestThread = async (): Promise<Message | undefined> => {
-  const history = await Slack.conversationsHistory({
-    channel: core.getInput('slack-channel-id')
-  })
-  const repoName = github.context.payload.repository?.name
-  const number =
-    github.context.payload.pull_request?.number ||
-    github.context.payload.issue?.number
-  return history.messages?.find(m => m.text === `${repoName}-${number}`)
 }
