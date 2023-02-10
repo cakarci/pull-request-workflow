@@ -18,6 +18,9 @@ export const pullRequestReminder = async (
   {owner, repo, state = 'open'}: listPullRequestsParameters
 ): Promise<void> => {
   const pulls = await githubService.listPullRequests({owner, repo, state})
+  if (pulls.length === 0) {
+    return
+  }
   for (const {
     number,
     updated_at,
