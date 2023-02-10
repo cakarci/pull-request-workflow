@@ -33,53 +33,52 @@ export const pullRequestReminder = async (
     user,
     html_url
   } of pulls) {
-    if (!isTimeToRemind(updated_at, remindAfter)) {
-      return
-    }
-    const thread = await getPullRequestThread({
-      repoName: repo,
-      prNumber: number
-    })
-
-    const {APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS} =
-      await getPullRequestReviewStateUsers(
-        {
-          prAuthor: user?.login as string,
-          requestedReviewers: requested_reviewers?.map(
-            (r: {login: string}) => r.login
-          ) as string[],
-          githubUserNames
-        },
-        {
-          owner,
-          repo,
-          pull_number: number
-        }
-      )
-
-    if (APPROVED.length === 2 && CHANGES_REQUESTED.length === 0) {
-      await Slack.postMessage({
-        channel: core.getInput('slack-channel-id'),
-        thread_ts: thread?.ts,
-        blocks: generatePullRequestAuthorReminderMessage(
-          githubSlackUserMapper,
-          user?.login as string,
-          html_url
-        )
+    if (isTimeToRemind(updated_at, remindAfter)) {
+      const thread = await getPullRequestThread({
+        repoName: repo,
+        prNumber: number
       })
-    }
 
-    if (APPROVED.length <= 1 && SECOND_APPROVERS.length !== 0) {
-      for (const secondApprover of SECOND_APPROVERS) {
+      const {APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS} =
+        await getPullRequestReviewStateUsers(
+          {
+            prAuthor: user?.login as string,
+            requestedReviewers: requested_reviewers?.map(
+              (r: {login: string}) => r.login
+            ) as string[],
+            githubUserNames
+          },
+          {
+            owner,
+            repo,
+            pull_number: number
+          }
+        )
+
+      if (APPROVED.length === 2 && CHANGES_REQUESTED.length === 0) {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),
           thread_ts: thread?.ts,
-          blocks: generatePullRequestReviewerReminderMessage(
+          blocks: generatePullRequestAuthorReminderMessage(
             githubSlackUserMapper,
-            secondApprover,
+            user?.login as string,
             html_url
           )
         })
+      }
+
+      if (APPROVED.length <= 1 && SECOND_APPROVERS.length !== 0) {
+        for (const secondApprover of SECOND_APPROVERS) {
+          await Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: thread?.ts,
+            blocks: generatePullRequestReviewerReminderMessage(
+              githubSlackUserMapper,
+              secondApprover,
+              html_url
+            )
+          })
+        }
       }
     }
   }
