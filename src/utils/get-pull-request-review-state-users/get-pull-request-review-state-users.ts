@@ -1,5 +1,6 @@
 import {githubService, OctokitListReviewsResponseType} from '../../api/github'
 import {ReviewStates} from '../../constants'
+import {requestTwoReviewers} from '../request-two-reviewers'
 
 type UserWithState = {user: string; state: ReviewStates}
 
@@ -12,10 +13,12 @@ interface ReviewStateUsersMap {
 export const getPullRequestReviewStateUsers = async (
   {
     prAuthor,
-    requestedReviewers
+    requestedReviewers,
+    githubUserNames
   }: {
     prAuthor: string
     requestedReviewers: string[]
+    githubUserNames: string[]
   },
   {owner, repo, pull_number}: {owner: string; repo: string; pull_number: number}
 ): Promise<ReviewStateUsersMap & {SECOND_APPROVERS: string[]}> => {
@@ -31,10 +34,24 @@ export const getPullRequestReviewStateUsers = async (
     prAuthor
   )
 
+  let SECOND_APPROVERS = [
+    ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
+  ]
+
+  if (SECOND_APPROVERS.length === 0) {
+    SECOND_APPROVERS = await requestTwoReviewers(
+      [prAuthor, ...APPROVED, ...CHANGES_REQUESTED],
+      githubUserNames,
+      {
+        owner,
+        repo,
+        pull_number
+      }
+    )
+  }
+
   return {
-    SECOND_APPROVERS: [
-      ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
-    ],
+    SECOND_APPROVERS,
     APPROVED,
     CHANGES_REQUESTED,
     COMMENTED

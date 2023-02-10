@@ -10,11 +10,16 @@ import {Slack} from '../../api/slack'
 import * as core from '@actions/core'
 
 interface PullRequestReminderParameters {
+  githubUserNames: string[]
   githubSlackUserMapper: Record<string, string>
   remindAfter: number | undefined
 }
 export const pullRequestReminder = async (
-  {githubSlackUserMapper, remindAfter = 1}: PullRequestReminderParameters,
+  {
+    githubUserNames,
+    githubSlackUserMapper,
+    remindAfter = 1
+  }: PullRequestReminderParameters,
   {owner, repo, state = 'open'}: listPullRequestsParameters
 ): Promise<void> => {
   const pulls = await githubService.listPullRequests({owner, repo, state})
@@ -42,7 +47,8 @@ export const pullRequestReminder = async (
           prAuthor: user?.login as string,
           requestedReviewers: requested_reviewers?.map(
             (r: {login: string}) => r.login
-          ) as string[]
+          ) as string[],
+          githubUserNames
         },
         {
           owner,
@@ -63,7 +69,7 @@ export const pullRequestReminder = async (
       })
     }
 
-    if (APPROVED.length <= 1) {
+    if (APPROVED.length <= 1 && SECOND_APPROVERS.length !== 0) {
       for (const secondApprover of SECOND_APPROVERS) {
         await Slack.postMessage({
           channel: core.getInput('slack-channel-id'),

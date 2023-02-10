@@ -35,7 +35,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       await getFileContent()
     if (eventName === GithubEventNames.SCHEDULE) {
       await pullRequestReminder(
-        {githubSlackUserMapper, remindAfter},
+        {githubUserNames, githubSlackUserMapper, remindAfter},
         {owner: repo.owner, repo: repo.repo}
       )
     } else {
@@ -171,7 +171,8 @@ export const PullRequestWorkflow = async (): Promise<void> => {
                 requestedReviewers:
                   payload.pull_request.requested_reviewers.map(
                     (r: {login: never}) => r.login
-                  )
+                  ),
+                githubUserNames
               },
               {
                 owner: repo.owner,
@@ -190,18 +191,6 @@ export const PullRequestWorkflow = async (): Promise<void> => {
           )
 
           if (payload.review?.state.toUpperCase() === ReviewStates.APPROVED) {
-            let secondApprovers = SECOND_APPROVERS
-            if (SECOND_APPROVERS.length === 0) {
-              secondApprovers = await requestTwoReviewers(
-                [prAuthor, ...APPROVED, ...CHANGES_REQUESTED],
-                githubUserNames,
-                {
-                  owner: repo.owner,
-                  repo: repo.repo,
-                  pull_number: payload.pull_request?.number
-                }
-              )
-            }
             if (APPROVED.length === 1) {
               await Slack.postMessage({
                 channel: core.getInput('slack-channel-id'),
@@ -209,7 +198,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
                 blocks: generateSecondReviewerMessage(
                   github.context,
                   githubSlackUserMapper,
-                  getRandomItemFromArray(secondApprovers)
+                  getRandomItemFromArray(SECOND_APPROVERS)
                 )
               })
             }
