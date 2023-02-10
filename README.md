@@ -113,10 +113,12 @@ A GitHub action that creates a workflow with **_four eyes principle_**
     }
     ```
 
-  - `githubSlackUserMapper` **Required**
-    - object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` [How to get Slack Member ID](https://user-images.githubusercontent.com/4185569/216829550-be52aa6e-4d01-4e98-b5f5-5f27d63cb431.png)
+  - `teamName` **Optional**
+    - Currently, not used
   - `githubUserNames` **Required**
     - All the users defined in the `githubUserNames` list should have read/write access to the repository
+  - `githubSlackUserMapper` **Required**
+    - object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` [How to get Slack Member ID](https://user-images.githubusercontent.com/4185569/216829550-be52aa6e-4d01-4e98-b5f5-5f27d63cb431.png)
   - `remindAfter` **Optional**
     - If set then pull request collaborators (PR Author, Reviewers) will be reminded after `x` hours if the PR is waiting on them.
 
