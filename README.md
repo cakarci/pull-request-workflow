@@ -81,7 +81,7 @@ A GitHub action that creates a workflow with **_four eyes principle_**
       issue_comment:
         types: [created, edited, deleted]
       schedule:
-        - cron: '5 * * * *'
+        - cron: '*/5 * * * *'
 
     jobs:
       pull_request_workflow:

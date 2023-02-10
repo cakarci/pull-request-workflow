@@ -25,16 +25,14 @@ export const pullRequestReminder = async (
     number,
     updated_at,
     requested_reviewers,
-    head,
     user,
     html_url
   } of pulls) {
     if (!isTimeToRemind(updated_at, remindAfter)) {
       return
     }
-    const repoName = head.repo.name
     const thread = await getPullRequestThread({
-      repoName,
+      repoName: repo,
       prNumber: number
     })
 
