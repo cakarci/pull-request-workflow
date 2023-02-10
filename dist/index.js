@@ -823,6 +823,9 @@ const slack_1 = __nccwpck_require__(8697);
 const core = __importStar(__nccwpck_require__(2186));
 const pullRequestReminder = ({ githubSlackUserMapper, remindAfter = 1 }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
     const pulls = yield github_1.githubService.listPullRequests({ owner, repo, state });
+    if (pulls.length === 0) {
+        return;
+    }
     for (const { number, updated_at, requested_reviewers, head, user, html_url } of pulls) {
         if (!isTimeToRemind(updated_at, remindAfter)) {
             return;
