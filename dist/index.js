@@ -822,36 +822,35 @@ const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAft
         return;
     }
     for (const { number, updated_at, requested_reviewers, user, html_url } of pulls) {
-        if (!isTimeToRemind(updated_at, remindAfter)) {
-            return;
-        }
-        const thread = yield (0, utils_1.getPullRequestThread)({
-            repoName: repo,
-            prNumber: number
-        });
-        const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
-            prAuthor: user === null || user === void 0 ? void 0 : user.login,
-            requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login),
-            githubUserNames
-        }, {
-            owner,
-            repo,
-            pull_number: number
-        });
-        if (APPROVED.length === 2 && CHANGES_REQUESTED.length === 0) {
-            yield slack_1.Slack.postMessage({
-                channel: core.getInput('slack-channel-id'),
-                thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                blocks: (0, utils_1.generatePullRequestAuthorReminderMessage)(githubSlackUserMapper, user === null || user === void 0 ? void 0 : user.login, html_url)
+        if (isTimeToRemind(updated_at, remindAfter)) {
+            const thread = yield (0, utils_1.getPullRequestThread)({
+                repoName: repo,
+                prNumber: number
             });
-        }
-        if (APPROVED.length <= 1 && SECOND_APPROVERS.length !== 0) {
-            for (const secondApprover of SECOND_APPROVERS) {
+            const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
+                prAuthor: user === null || user === void 0 ? void 0 : user.login,
+                requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login),
+                githubUserNames
+            }, {
+                owner,
+                repo,
+                pull_number: number
+            });
+            if (APPROVED.length === 2 && CHANGES_REQUESTED.length === 0) {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                    blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(githubSlackUserMapper, secondApprover, html_url)
+                    blocks: (0, utils_1.generatePullRequestAuthorReminderMessage)(githubSlackUserMapper, user === null || user === void 0 ? void 0 : user.login, html_url)
                 });
+            }
+            if (APPROVED.length <= 1 && SECOND_APPROVERS.length !== 0) {
+                for (const secondApprover of SECOND_APPROVERS) {
+                    yield slack_1.Slack.postMessage({
+                        channel: core.getInput('slack-channel-id'),
+                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                        blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(githubSlackUserMapper, secondApprover, html_url)
+                    });
+                }
             }
         }
     }
