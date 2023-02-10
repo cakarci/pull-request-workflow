@@ -13,11 +13,12 @@ import {
   generateSecondReviewerMessage,
   getFileContent,
   getPullRequestReviewStateUsers,
+  getPullRequestThread,
   getRandomItemFromArray,
   requestTwoReviewers
 } from './utils'
-import {Message} from '@slack/web-api/dist/response/ConversationsHistoryResponse'
 import {allowedEventNames, GithubEventNames, ReviewStates} from './constants'
+import {pullRequestReminder} from './services'
 
 export const PullRequestWorkflow = async (): Promise<void> => {
   try {
@@ -30,7 +31,14 @@ export const PullRequestWorkflow = async (): Promise<void> => {
       )
       return
     }
-    const {githubUserNames, githubSlackUserMapper} = await getFileContent()
+    const {githubUserNames, githubSlackUserMapper, remindAfter} =
+      await getFileContent()
+    if (eventName === GithubEventNames.SCHEDULE) {
+      await pullRequestReminder(
+        {githubSlackUserMapper, remindAfter},
+        {owner: repo.owner, repo: repo.repo}
+      )
+    }
     if (
       eventName === GithubEventNames.PULL_REQUEST &&
       payload.action === 'opened' &&
@@ -56,7 +64,12 @@ export const PullRequestWorkflow = async (): Promise<void> => {
         )
       })
     } else {
-      const thread = await getPullRequestThread()
+      const thread = await getPullRequestThread({
+        repoName: github.context.payload.repository?.name,
+        prNumber:
+          github.context.payload.pull_request?.number ||
+          github.context.payload.issue?.number
+      })
       if (!thread?.ts) {
         core.warning(
           `The Slack thread is not found for the pull request ${payload.pull_request?.number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`
@@ -150,11 +163,11 @@ export const PullRequestWorkflow = async (): Promise<void> => {
             githubSlackUserMapper
           )
         })
+        const prAuthor = github.context.payload.pull_request?.user.login
         const {APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS, COMMENTED} =
           await getPullRequestReviewStateUsers(
             {
-              prAuthor: github.context.payload.pull_request?.user.login,
-              githubUserNames,
+              prAuthor,
               requestedReviewers: payload.pull_request.requested_reviewers.map(
                 (r: {login: never}) => r.login
               )
@@ -176,6 +189,18 @@ export const PullRequestWorkflow = async (): Promise<void> => {
         )
 
         if (payload.review?.state.toUpperCase() === ReviewStates.APPROVED) {
+          let secondApprovers = SECOND_APPROVERS
+          if (SECOND_APPROVERS.length === 0) {
+            secondApprovers = await requestTwoReviewers(
+              [prAuthor, ...APPROVED, ...CHANGES_REQUESTED],
+              githubUserNames,
+              {
+                owner: repo.owner,
+                repo: repo.repo,
+                pull_number: payload.pull_request?.number
+              }
+            )
+          }
           if (APPROVED.length === 1) {
             await Slack.postMessage({
               channel: core.getInput('slack-channel-id'),
@@ -183,7 +208,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
               blocks: generateSecondReviewerMessage(
                 github.context,
                 githubSlackUserMapper,
-                getRandomItemFromArray(SECOND_APPROVERS)
+                getRandomItemFromArray(secondApprovers)
               )
             })
           }
@@ -204,15 +229,4 @@ export const PullRequestWorkflow = async (): Promise<void> => {
   } catch (error) {
     if (error instanceof Error) core.setFailed(error.message)
   }
-}
-
-const getPullRequestThread = async (): Promise<Message | undefined> => {
-  const history = await Slack.conversationsHistory({
-    channel: core.getInput('slack-channel-id')
-  })
-  const repoName = github.context.payload.repository?.name
-  const number =
-    github.context.payload.pull_request?.number ||
-    github.context.payload.issue?.number
-  return history.messages?.find(m => m.text === `${repoName}-${number}`)
 }

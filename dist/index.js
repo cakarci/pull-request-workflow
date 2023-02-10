@@ -158,13 +158,85 @@ const github = __importStar(__nccwpck_require__(5438));
 const create_comment_1 = __nccwpck_require__(6079);
 const request_reviewers_1 = __nccwpck_require__(9230);
 const get_reviews_1 = __nccwpck_require__(4940);
+const list_pull_requests_1 = __nccwpck_require__(9340);
 const token = core.getInput('github-token');
 const octokit = github.getOctokit(token);
 exports.githubService = {
     createComment: (0, create_comment_1.createComment)(octokit),
     requestReviewers: (0, request_reviewers_1.requestReviewers)(octokit),
-    getReviews: (0, get_reviews_1.getReviews)(octokit)
+    getReviews: (0, get_reviews_1.getReviews)(octokit),
+    listPullRequests: (0, list_pull_requests_1.listPullRequests)(octokit)
 };
+
+
+/***/ }),
+
+/***/ 9340:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(3888), exports);
+
+
+/***/ }),
+
+/***/ 3888:
+/***/ (function(__unused_webpack_module, exports) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __rest = (this && this.__rest) || function (s, e) {
+    var t = {};
+    for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p) && e.indexOf(p) < 0)
+        t[p] = s[p];
+    if (s != null && typeof Object.getOwnPropertySymbols === "function")
+        for (var i = 0, p = Object.getOwnPropertySymbols(s); i < p.length; i++) {
+            if (e.indexOf(p[i]) < 0 && Object.prototype.propertyIsEnumerable.call(s, p[i]))
+                t[p[i]] = s[p[i]];
+        }
+    return t;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.listPullRequests = void 0;
+const listPullRequests = (octokit) => {
+    return (_a) => __awaiter(void 0, void 0, void 0, function* () {
+        var { owner, repo } = _a, rest = __rest(_a, ["owner", "repo"]);
+        try {
+            const { data } = yield octokit.rest.pulls.list(Object.assign({ owner,
+                repo }, rest));
+            return data;
+        }
+        catch (error) {
+            return Promise.reject(error);
+        }
+    });
+};
+exports.listPullRequests = listPullRequests;
 
 
 /***/ }),
@@ -423,6 +495,7 @@ var GithubEventNames;
     GithubEventNames["PULL_REQUEST_REVIEW"] = "pull_request_review";
     GithubEventNames["PULL_REQUEST_REVIEW_COMMENT"] = "pull_request_review_comment";
     GithubEventNames["ISSUE_COMMENT"] = "issue_comment";
+    GithubEventNames["SCHEDULE"] = "schedule";
 })(GithubEventNames = exports.GithubEventNames || (exports.GithubEventNames = {}));
 var ReviewStates;
 (function (ReviewStates) {
@@ -434,7 +507,8 @@ exports.allowedEventNames = [
     GithubEventNames.PULL_REQUEST,
     GithubEventNames.PULL_REQUEST_REVIEW,
     GithubEventNames.PULL_REQUEST_REVIEW_COMMENT,
-    GithubEventNames.ISSUE_COMMENT
+    GithubEventNames.ISSUE_COMMENT,
+    GithubEventNames.SCHEDULE
 ];
 
 
@@ -512,15 +586,19 @@ const github = __importStar(__nccwpck_require__(5438));
 const slack_1 = __nccwpck_require__(8697);
 const utils_1 = __nccwpck_require__(1606);
 const constants_1 = __nccwpck_require__(5105);
+const services_1 = __nccwpck_require__(2724);
 const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c, _d, _e, _f, _g;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
     try {
         const { actor, repo, eventName, payload } = github.context;
         if (!constants_1.allowedEventNames.includes(eventName)) {
             core.warning(`eventName should be ${constants_1.allowedEventNames.join(',')} but received: ${eventName} `);
             return;
         }
-        const { githubUserNames, githubSlackUserMapper } = yield (0, utils_1.getFileContent)();
+        const { githubUserNames, githubSlackUserMapper, remindAfter } = yield (0, utils_1.getFileContent)();
+        if (eventName === constants_1.GithubEventNames.SCHEDULE) {
+            yield (0, services_1.pullRequestReminder)({ githubSlackUserMapper, remindAfter }, { owner: repo.owner, repo: repo.repo });
+        }
         if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
             payload.action === 'opened' &&
             payload.pull_request) {
@@ -536,9 +614,13 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             });
         }
         else {
-            const thread = yield getPullRequestThread();
+            const thread = yield (0, utils_1.getPullRequestThread)({
+                repoName: (_c = github.context.payload.repository) === null || _c === void 0 ? void 0 : _c.name,
+                prNumber: ((_d = github.context.payload.pull_request) === null || _d === void 0 ? void 0 : _d.number) ||
+                    ((_e = github.context.payload.issue) === null || _e === void 0 ? void 0 : _e.number)
+            });
             if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
-                core.warning(`The Slack thread is not found for the pull request ${(_c = payload.pull_request) === null || _c === void 0 ? void 0 : _c.number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`);
+                core.warning(`The Slack thread is not found for the pull request ${(_f = payload.pull_request) === null || _f === void 0 ? void 0 : _f.number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`);
                 return;
             }
             if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
@@ -551,7 +633,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             }
             if (eventName === constants_1.GithubEventNames.PULL_REQUEST &&
                 payload.action === 'closed' &&
-                ((_d = payload.pull_request) === null || _d === void 0 ? void 0 : _d.merged)) {
+                ((_g = payload.pull_request) === null || _g === void 0 ? void 0 : _g.merged)) {
                 yield slack_1.Slack.postMessage({
                     channel: core.getInput('slack-channel-id'),
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
@@ -594,14 +676,14 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                     blocks: (0, utils_1.generatePullRequestReviewSubmittedMessage)(github.context, githubSlackUserMapper)
                 });
+                const prAuthor = (_h = github.context.payload.pull_request) === null || _h === void 0 ? void 0 : _h.user.login;
                 const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS, COMMENTED } = yield (0, utils_1.getPullRequestReviewStateUsers)({
-                    prAuthor: (_e = github.context.payload.pull_request) === null || _e === void 0 ? void 0 : _e.user.login,
-                    githubUserNames,
+                    prAuthor,
                     requestedReviewers: payload.pull_request.requested_reviewers.map((r) => r.login)
                 }, {
                     owner: repo.owner,
                     repo: repo.repo,
-                    pull_number: (_f = payload.pull_request) === null || _f === void 0 ? void 0 : _f.number
+                    pull_number: (_j = payload.pull_request) === null || _j === void 0 ? void 0 : _j.number
                 });
                 core.info(JSON.stringify({
                     APPROVED,
@@ -609,12 +691,20 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
                     SECOND_APPROVERS,
                     COMMENTED
                 }));
-                if (((_g = payload.review) === null || _g === void 0 ? void 0 : _g.state.toUpperCase()) === constants_1.ReviewStates.APPROVED) {
+                if (((_k = payload.review) === null || _k === void 0 ? void 0 : _k.state.toUpperCase()) === constants_1.ReviewStates.APPROVED) {
+                    let secondApprovers = SECOND_APPROVERS;
+                    if (SECOND_APPROVERS.length === 0) {
+                        secondApprovers = yield (0, utils_1.requestTwoReviewers)([prAuthor, ...APPROVED, ...CHANGES_REQUESTED], githubUserNames, {
+                            owner: repo.owner,
+                            repo: repo.repo,
+                            pull_number: (_l = payload.pull_request) === null || _l === void 0 ? void 0 : _l.number
+                        });
+                    }
                     if (APPROVED.length === 1) {
                         yield slack_1.Slack.postMessage({
                             channel: core.getInput('slack-channel-id'),
                             thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                            blocks: (0, utils_1.generateSecondReviewerMessage)(github.context, githubSlackUserMapper, (0, utils_1.getRandomItemFromArray)(SECOND_APPROVERS))
+                            blocks: (0, utils_1.generateSecondReviewerMessage)(github.context, githubSlackUserMapper, (0, utils_1.getRandomItemFromArray)(secondApprovers))
                         });
                     }
                     if (APPROVED.length >= 2 && CHANGES_REQUESTED.length === 0) {
@@ -634,16 +724,150 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
     }
 });
 exports.PullRequestWorkflow = PullRequestWorkflow;
-const getPullRequestThread = () => __awaiter(void 0, void 0, void 0, function* () {
-    var _h, _j, _k, _l;
-    const history = yield slack_1.Slack.conversationsHistory({
-        channel: core.getInput('slack-channel-id')
-    });
-    const repoName = (_h = github.context.payload.repository) === null || _h === void 0 ? void 0 : _h.name;
-    const number = ((_j = github.context.payload.pull_request) === null || _j === void 0 ? void 0 : _j.number) ||
-        ((_k = github.context.payload.issue) === null || _k === void 0 ? void 0 : _k.number);
-    return (_l = history.messages) === null || _l === void 0 ? void 0 : _l.find(m => m.text === `${repoName}-${number}`);
+
+
+/***/ }),
+
+/***/ 2724:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(9251), exports);
+
+
+/***/ }),
+
+/***/ 9251:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(7118), exports);
+
+
+/***/ }),
+
+/***/ 7118:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
 });
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.pullRequestReminder = void 0;
+const github_1 = __nccwpck_require__(3273);
+const utils_1 = __nccwpck_require__(1606);
+const slack_1 = __nccwpck_require__(8697);
+const core = __importStar(__nccwpck_require__(2186));
+const pullRequestReminder = ({ githubSlackUserMapper, remindAfter = 1 }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
+    const pulls = yield github_1.githubService.listPullRequests({ owner, repo, state });
+    if (pulls.length === 0) {
+        return;
+    }
+    for (const { number, updated_at, requested_reviewers, head, user, html_url } of pulls) {
+        if (!isTimeToRemind(updated_at, remindAfter)) {
+            return;
+        }
+        const repoName = head.repo.name;
+        const thread = yield (0, utils_1.getPullRequestThread)({
+            repoName,
+            prNumber: number
+        });
+        const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
+            prAuthor: user === null || user === void 0 ? void 0 : user.login,
+            requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login)
+        }, {
+            owner,
+            repo,
+            pull_number: number
+        });
+        if (APPROVED.length === 2 && CHANGES_REQUESTED.length === 0) {
+            yield slack_1.Slack.postMessage({
+                channel: core.getInput('slack-channel-id'),
+                thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                blocks: (0, utils_1.generatePullRequestAuthorReminderMessage)(githubSlackUserMapper, user === null || user === void 0 ? void 0 : user.login, html_url)
+            });
+        }
+        if (APPROVED.length <= 1) {
+            for (const secondApprover of SECOND_APPROVERS) {
+                yield slack_1.Slack.postMessage({
+                    channel: core.getInput('slack-channel-id'),
+                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                    blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(githubSlackUserMapper, secondApprover, html_url)
+                });
+            }
+        }
+    }
+});
+exports.pullRequestReminder = pullRequestReminder;
+const isTimeToRemind = (updatedAt, remindAfter) => {
+    const today = new Date().getTime();
+    const updatedAtDate = new Date(updatedAt).getTime();
+    const hoursInMilliSecond = 3600000 * remindAfter;
+    return today - hoursInMilliSecond > updatedAtDate;
+};
 
 
 /***/ }),
@@ -669,6 +893,30 @@ const generateNewCommitAddedMessage = (githubContext, githubSlackUserMapper) => 
     ];
 };
 exports.generateNewCommitAddedMessage = generateNewCommitAddedMessage;
+
+
+/***/ }),
+
+/***/ 5398:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestAuthorReminderMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestAuthorReminderMessage = (githubSlackUserMapper, userToRemind, html_url) => {
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, userToRemind)} :wave:\nThe <${html_url}|pull request> is ready to be merged and waiting your action.`
+            }
+        }
+    ];
+};
+exports.generatePullRequestAuthorReminderMessage = generatePullRequestAuthorReminderMessage;
 
 
 /***/ }),
@@ -900,6 +1148,50 @@ exports.generatePullRequestReviewSubmittedMessage = generatePullRequestReviewSub
 
 /***/ }),
 
+/***/ 9024:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestReviewerReminderMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestReviewerReminderMessage = (githubSlackUserMapper, userToRemind, html_url) => {
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, userToRemind)} :wave:\nThe <${html_url}|pull request> is waiting for your review.`
+            }
+        },
+        {
+            type: 'divider'
+        },
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: '_Happy code reviews_ :tada:'
+            },
+            accessory: {
+                type: 'button',
+                text: {
+                    type: 'plain_text',
+                    text: ':arrow_right: Review PR',
+                    emoji: true
+                },
+                url: `${html_url}/files`,
+                action_id: 'button-action'
+            }
+        }
+    ];
+};
+exports.generatePullRequestReviewerReminderMessage = generatePullRequestReviewerReminderMessage;
+
+
+/***/ }),
+
 /***/ 9506:
 /***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
 
@@ -1011,6 +1303,8 @@ __exportStar(__nccwpck_require__(6885), exports);
 __exportStar(__nccwpck_require__(5384), exports);
 __exportStar(__nccwpck_require__(3432), exports);
 __exportStar(__nccwpck_require__(9363), exports);
+__exportStar(__nccwpck_require__(5398), exports);
+__exportStar(__nccwpck_require__(9024), exports);
 
 
 /***/ }),
@@ -1153,9 +1447,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getPullRequestReviewStateUsers = void 0;
 const github_1 = __nccwpck_require__(3273);
-const request_two_reviewers_1 = __nccwpck_require__(7197);
 const constants_1 = __nccwpck_require__(5105);
-const getPullRequestReviewStateUsers = ({ prAuthor, githubUserNames, requestedReviewers }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
+const getPullRequestReviewStateUsers = ({ prAuthor, requestedReviewers }, { owner, repo, pull_number }) => __awaiter(void 0, void 0, void 0, function* () {
     const reviews = yield github_1.githubService.getReviews({
         owner,
         repo,
@@ -1163,16 +1456,9 @@ const getPullRequestReviewStateUsers = ({ prAuthor, githubUserNames, requestedRe
     });
     const reviewersWithState = getReviewers(reviews);
     const { APPROVED, CHANGES_REQUESTED, COMMENTED } = getReviewStateUsersMap(reviewersWithState, prAuthor);
-    if (requestedReviewers.length === 0 && APPROVED.length < 2) {
-        requestedReviewers = yield (0, request_two_reviewers_1.requestTwoReviewers)([prAuthor, ...APPROVED, ...CHANGES_REQUESTED], githubUserNames, {
-            owner,
-            repo,
-            pull_number
-        });
-    }
     return {
         SECOND_APPROVERS: [
-            ...new Set([...requestedReviewers, ...CHANGES_REQUESTED])
+            ...new Set([...requestedReviewers, ...COMMENTED, ...CHANGES_REQUESTED])
         ],
         APPROVED,
         CHANGES_REQUESTED,
@@ -1241,6 +1527,84 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 __exportStar(__nccwpck_require__(9438), exports);
+
+
+/***/ }),
+
+/***/ 245:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.getPullRequestThread = void 0;
+const slack_1 = __nccwpck_require__(8697);
+const core = __importStar(__nccwpck_require__(2186));
+const getPullRequestThread = ({ repoName, prNumber }) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
+    const history = yield slack_1.Slack.conversationsHistory({
+        channel: core.getInput('slack-channel-id')
+    });
+    return (_a = history.messages) === null || _a === void 0 ? void 0 : _a.find(m => m.text === `${repoName}-${prNumber}`);
+});
+exports.getPullRequestThread = getPullRequestThread;
+
+
+/***/ }),
+
+/***/ 1833:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__nccwpck_require__(245), exports);
 
 
 /***/ }),
@@ -1358,6 +1722,7 @@ __exportStar(__nccwpck_require__(3070), exports);
 __exportStar(__nccwpck_require__(7173), exports);
 __exportStar(__nccwpck_require__(7197), exports);
 __exportStar(__nccwpck_require__(6017), exports);
+__exportStar(__nccwpck_require__(1833), exports);
 
 
 /***/ }),

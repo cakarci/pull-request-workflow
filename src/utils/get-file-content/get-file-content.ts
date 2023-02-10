@@ -3,6 +3,7 @@ interface PullRequestWorkflowInterface {
   teamName?: string
   githubUserNames: string[]
   githubSlackUserMapper: Record<string, string>
+  remindAfter?: number
 }
 export const getFileContent =
   async (): Promise<PullRequestWorkflowInterface> => {

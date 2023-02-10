@@ -28,6 +28,8 @@ on:
     types: [created, edited, deleted]
   issue_comment:
     types: [created, edited, deleted]
+  schedule:
+    - cron: '5 * * * *'
 
 jobs:
   pull-request-workflow:
