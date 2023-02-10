@@ -81,7 +81,7 @@ A GitHub action that creates a workflow with **_four eyes principle_**
       issue_comment:
         types: [created, edited, deleted]
       schedule:
-        - cron: '*/5 * * * *'
+        - cron: '0 10 * * 1-5'
 
     jobs:
       pull_request_workflow:
@@ -109,7 +109,7 @@ A GitHub action that creates a workflow with **_four eyes principle_**
         "scakarci": "U04LNHEVA48",
         "cakarci": "U035MNNF8LW"
       },
-      "remindAfter": 0.05
+      "remindAfter": 6
     }
     ```
 
