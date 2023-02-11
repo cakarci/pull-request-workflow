@@ -23,8 +23,11 @@ export const pullRequestReminder = async (
   }: PullRequestReminderParameters,
   {owner, repo, state = 'open'}: listPullRequestsParameters
 ): Promise<void> => {
+  if (!remindAfter) {
+    return
+  }
   const pulls = await githubService.listPullRequests({owner, repo, state})
-  if (pulls.length === 0 || !remindAfter) {
+  if (pulls.length === 0) {
     return
   }
   for (const {
@@ -41,9 +44,6 @@ export const pullRequestReminder = async (
       })
 
       if (!thread?.ts) {
-        core.warning(
-          `The Slack thread is not found for the pull request ${number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`
-        )
         return
       }
 

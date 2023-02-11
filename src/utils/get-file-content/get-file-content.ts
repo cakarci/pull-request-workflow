@@ -1,4 +1,5 @@
 import {readFile} from 'fs/promises'
+
 interface PullRequestWorkflowInterface {
   teamName?: string
   githubUserNames: string[]
@@ -18,36 +19,47 @@ export const getFileContent =
     }
   }
 
-const validateData = (data: PullRequestWorkflowInterface): void => {
-  if (data.remindAfter && typeof data.remindAfter !== 'number') {
+const validateData = ({
+  remindAfter,
+  githubUserNames,
+  githubSlackUserMapper
+}: PullRequestWorkflowInterface): void => {
+  if (remindAfter && typeof remindAfter !== 'number') {
     throw new Error(`"remindAfter" should be a number`)
   }
 
-  if (data.remindAfter && data.remindAfter <= 0) {
+  if (remindAfter && remindAfter <= 0) {
     throw new Error(`"remindAfter" should be greater than 0`)
   }
 
-  if (!data.githubUserNames || data.githubUserNames?.length === 0) {
-    throw new Error(
-      `"githubUserNames" should be defined as ["username1", "username2"] but received githubUserNames:${data.githubUserNames}`
-    )
-  }
   if (
-    !data.githubSlackUserMapper ||
-    Object.keys(data.githubSlackUserMapper)?.length === 0
+    (githubUserNames && !Array.isArray(githubUserNames)) ||
+    !githubUserNames ||
+    githubUserNames?.length === 0
   ) {
     throw new Error(
-      `"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2", "githubUserName3":"slackMemberId3"} but received githubSlackUserMapper:${JSON.stringify(
-        data.githubSlackUserMapper
-      )}`
+      `"githubUserNames" should be defined as ["username1", "username2"]`
     )
   }
   if (
-    data.githubUserNames?.length < 3 ||
-    Object.keys(data.githubSlackUserMapper)?.length < 3
+    (githubSlackUserMapper && !isObject(githubSlackUserMapper)) ||
+    !githubSlackUserMapper ||
+    Object.keys(githubSlackUserMapper)?.length === 0
+  ) {
+    throw new Error(
+      `"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2", "githubUserName3":"slackMemberId3"}`
+    )
+  }
+  if (
+    githubUserNames?.length < 3 ||
+    Object.keys(githubSlackUserMapper)?.length < 3
   ) {
     throw new Error(
       `In "githubUserNames" or "githubSlackUserMapper", at least 3 users should be added`
     )
   }
+}
+
+const isObject = (item: unknown): boolean => {
+  return typeof item === 'object' && !Array.isArray(item) && item !== null
 }
