@@ -38,7 +38,7 @@ const validateData = ({
     githubUserNames?.length === 0
   ) {
     throw new Error(
-      `"githubUserNames" should be defined as ["username1", "username2"]`
+      `"githubUserNames" should be defined as ["githubUserName1", "githubUserName2", "githubUserName3"]`
     )
   }
   if (
