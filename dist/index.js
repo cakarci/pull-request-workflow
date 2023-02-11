@@ -817,8 +817,11 @@ const utils_1 = __nccwpck_require__(1606);
 const slack_1 = __nccwpck_require__(8697);
 const core = __importStar(__nccwpck_require__(2186));
 const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAfter }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!remindAfter) {
+        return;
+    }
     const pulls = yield github_1.githubService.listPullRequests({ owner, repo, state });
-    if (pulls.length === 0 || !remindAfter) {
+    if (pulls.length === 0) {
         return;
     }
     for (const { number, updated_at, requested_reviewers, user, html_url } of pulls) {
@@ -828,7 +831,6 @@ const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAft
                 prNumber: number
             });
             if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
-                core.warning(`The Slack thread is not found for the pull request ${number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`);
                 return;
             }
             const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
@@ -1423,25 +1425,31 @@ const getFileContent = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getFileContent = getFileContent;
-const validateData = (data) => {
-    var _a, _b, _c, _d;
-    if (data.remindAfter && typeof data.remindAfter !== 'number') {
+const validateData = ({ remindAfter, githubUserNames, githubSlackUserMapper }) => {
+    var _a, _b;
+    if (remindAfter && typeof remindAfter !== 'number') {
         throw new Error(`"remindAfter" should be a number`);
     }
-    if (data.remindAfter && data.remindAfter <= 0) {
+    if (remindAfter && remindAfter <= 0) {
         throw new Error(`"remindAfter" should be greater than 0`);
     }
-    if (!data.githubUserNames || ((_a = data.githubUserNames) === null || _a === void 0 ? void 0 : _a.length) === 0) {
-        throw new Error(`"githubUserNames" should be defined as ["username1", "username2"] but received githubUserNames:${data.githubUserNames}`);
+    if ((githubUserNames && !Array.isArray(githubUserNames)) ||
+        !githubUserNames ||
+        (githubUserNames === null || githubUserNames === void 0 ? void 0 : githubUserNames.length) === 0) {
+        throw new Error(`"githubUserNames" should be defined as ["username1", "username2"]`);
     }
-    if (!data.githubSlackUserMapper ||
-        ((_b = Object.keys(data.githubSlackUserMapper)) === null || _b === void 0 ? void 0 : _b.length) === 0) {
-        throw new Error(`"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2", "githubUserName3":"slackMemberId3"} but received githubSlackUserMapper:${JSON.stringify(data.githubSlackUserMapper)}`);
+    if ((githubSlackUserMapper && !isObject(githubSlackUserMapper)) ||
+        !githubSlackUserMapper ||
+        ((_a = Object.keys(githubSlackUserMapper)) === null || _a === void 0 ? void 0 : _a.length) === 0) {
+        throw new Error(`"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2", "githubUserName3":"slackMemberId3"}`);
     }
-    if (((_c = data.githubUserNames) === null || _c === void 0 ? void 0 : _c.length) < 3 ||
-        ((_d = Object.keys(data.githubSlackUserMapper)) === null || _d === void 0 ? void 0 : _d.length) < 3) {
+    if ((githubUserNames === null || githubUserNames === void 0 ? void 0 : githubUserNames.length) < 3 ||
+        ((_b = Object.keys(githubSlackUserMapper)) === null || _b === void 0 ? void 0 : _b.length) < 3) {
         throw new Error(`In "githubUserNames" or "githubSlackUserMapper", at least 3 users should be added`);
     }
+};
+const isObject = (item) => {
+    return typeof item === 'object' && !Array.isArray(item) && item !== null;
 };
 
 
