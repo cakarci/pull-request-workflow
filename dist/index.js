@@ -816,7 +816,10 @@ const github_1 = __nccwpck_require__(3273);
 const utils_1 = __nccwpck_require__(1606);
 const slack_1 = __nccwpck_require__(8697);
 const core = __importStar(__nccwpck_require__(2186));
-const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAfter = 1 }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
+const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAfter }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!remindAfter) {
+        return;
+    }
     const pulls = yield github_1.githubService.listPullRequests({ owner, repo, state });
     if (pulls.length === 0) {
         return;
@@ -827,6 +830,9 @@ const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAft
                 repoName: repo,
                 prNumber: number
             });
+            if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
+                return;
+            }
             const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
                 prAuthor: user === null || user === void 0 ? void 0 : user.login,
                 requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login),
@@ -849,6 +855,15 @@ const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAft
                         channel: core.getInput('slack-channel-id'),
                         thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                         blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(githubSlackUserMapper, secondApprover, html_url)
+                    });
+                }
+            }
+            if (APPROVED.length === 2 && CHANGES_REQUESTED.length !== 0) {
+                for (const changesRequester of CHANGES_REQUESTED) {
+                    yield slack_1.Slack.postMessage({
+                        channel: core.getInput('slack-channel-id'),
+                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                        blocks: (0, utils_1.generatePullRequestChangeRequesterReminderMessage)(githubSlackUserMapper, changesRequester, html_url)
                     });
                 }
             }
@@ -911,6 +926,40 @@ const generatePullRequestAuthorReminderMessage = (githubSlackUserMapper, userToR
     ];
 };
 exports.generatePullRequestAuthorReminderMessage = generatePullRequestAuthorReminderMessage;
+
+
+/***/ }),
+
+/***/ 6517:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestChangeRequesterReminderMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestChangeRequesterReminderMessage = (githubSlackUserMapper, userToRemind, html_url) => {
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, userToRemind)} :wave:\nThe <${html_url}|pull request> is waiting for your approval.`
+            },
+            accessory: {
+                type: 'button',
+                text: {
+                    type: 'plain_text',
+                    text: ':arrow_right: Review PR',
+                    emoji: true
+                },
+                url: `${html_url}/files`,
+                action_id: 'button-action'
+            }
+        }
+    ];
+};
+exports.generatePullRequestChangeRequesterReminderMessage = generatePullRequestChangeRequesterReminderMessage;
 
 
 /***/ }),
@@ -1157,16 +1206,6 @@ const generatePullRequestReviewerReminderMessage = (githubSlackUserMapper, userT
             text: {
                 type: 'mrkdwn',
                 text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, userToRemind)} :wave:\nThe <${html_url}|pull request> is waiting for your review.`
-            }
-        },
-        {
-            type: 'divider'
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: '_Happy code reviews_ :tada:'
             },
             accessory: {
                 type: 'button',
@@ -1299,6 +1338,7 @@ __exportStar(__nccwpck_require__(3432), exports);
 __exportStar(__nccwpck_require__(9363), exports);
 __exportStar(__nccwpck_require__(5398), exports);
 __exportStar(__nccwpck_require__(9024), exports);
+__exportStar(__nccwpck_require__(6517), exports);
 
 
 /***/ }),
@@ -1385,15 +1425,31 @@ const getFileContent = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getFileContent = getFileContent;
-const validateData = (data) => {
+const validateData = ({ remindAfter, githubUserNames, githubSlackUserMapper }) => {
     var _a, _b;
-    if (!data.githubUserNames || ((_a = data.githubUserNames) === null || _a === void 0 ? void 0 : _a.length) === 0) {
-        throw new Error(`"githubUserNames" should be defined as ["username1", "username2"] but received githubUserNames:${data.githubUserNames}`);
+    if (remindAfter && typeof remindAfter !== 'number') {
+        throw new Error(`"remindAfter" should be a number`);
     }
-    if (!data.githubSlackUserMapper ||
-        ((_b = Object.keys(data.githubSlackUserMapper)) === null || _b === void 0 ? void 0 : _b.length) === 0) {
-        throw new Error(`"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2"} but received githubSlackUserMapper:${JSON.stringify(data.githubSlackUserMapper)}`);
+    if (remindAfter && remindAfter <= 0) {
+        throw new Error(`"remindAfter" should be greater than 0`);
     }
+    if ((githubUserNames && !Array.isArray(githubUserNames)) ||
+        !githubUserNames ||
+        (githubUserNames === null || githubUserNames === void 0 ? void 0 : githubUserNames.length) === 0) {
+        throw new Error(`"githubUserNames" should be defined as ["githubUserName1", "githubUserName2", "githubUserName3"]`);
+    }
+    if ((githubSlackUserMapper && !isObject(githubSlackUserMapper)) ||
+        !githubSlackUserMapper ||
+        ((_a = Object.keys(githubSlackUserMapper)) === null || _a === void 0 ? void 0 : _a.length) === 0) {
+        throw new Error(`"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2", "githubUserName3":"slackMemberId3"}`);
+    }
+    if ((githubUserNames === null || githubUserNames === void 0 ? void 0 : githubUserNames.length) < 3 ||
+        ((_b = Object.keys(githubSlackUserMapper)) === null || _b === void 0 ? void 0 : _b.length) < 3) {
+        throw new Error(`In "githubUserNames" or "githubSlackUserMapper", at least 3 users should be added`);
+    }
+};
+const isObject = (item) => {
+    return typeof item === 'object' && !Array.isArray(item) && item !== null;
 };
 
 

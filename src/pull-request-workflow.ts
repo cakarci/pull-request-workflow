@@ -33,6 +33,7 @@ export const PullRequestWorkflow = async (): Promise<void> => {
     }
     const {githubUserNames, githubSlackUserMapper, remindAfter} =
       await getFileContent()
+
     if (eventName === GithubEventNames.SCHEDULE) {
       await pullRequestReminder(
         {githubUserNames, githubSlackUserMapper, remindAfter},
