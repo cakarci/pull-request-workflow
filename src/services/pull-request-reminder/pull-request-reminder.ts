@@ -2,6 +2,7 @@ import {listPullRequestsParameters} from '../../api/github/list-pull-requests'
 import {githubService} from '../../api/github'
 import {
   generatePullRequestAuthorReminderMessage,
+  generatePullRequestChangeRequesterReminderMessage,
   generatePullRequestReviewerReminderMessage,
   getPullRequestReviewStateUsers,
   getPullRequestThread
@@ -18,12 +19,12 @@ export const pullRequestReminder = async (
   {
     githubUserNames,
     githubSlackUserMapper,
-    remindAfter = 1
+    remindAfter
   }: PullRequestReminderParameters,
   {owner, repo, state = 'open'}: listPullRequestsParameters
 ): Promise<void> => {
   const pulls = await githubService.listPullRequests({owner, repo, state})
-  if (pulls.length === 0) {
+  if (pulls.length === 0 || !remindAfter) {
     return
   }
   for (const {
@@ -38,6 +39,13 @@ export const pullRequestReminder = async (
         repoName: repo,
         prNumber: number
       })
+
+      if (!thread?.ts) {
+        core.warning(
+          `The Slack thread is not found for the pull request ${number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`
+        )
+        return
+      }
 
       const {APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS} =
         await getPullRequestReviewStateUsers(
@@ -75,6 +83,20 @@ export const pullRequestReminder = async (
             blocks: generatePullRequestReviewerReminderMessage(
               githubSlackUserMapper,
               secondApprover,
+              html_url
+            )
+          })
+        }
+      }
+
+      if (APPROVED.length === 2 && CHANGES_REQUESTED.length !== 0) {
+        for (const changesRequester of CHANGES_REQUESTED) {
+          await Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: thread?.ts,
+            blocks: generatePullRequestChangeRequesterReminderMessage(
+              githubSlackUserMapper,
+              changesRequester,
               html_url
             )
           })
