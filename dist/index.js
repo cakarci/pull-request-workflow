@@ -596,7 +596,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const { githubUserNames, githubSlackUserMapper, remindAfter } = yield (0, utils_1.getFileContent)();
-        if (eventName === constants_1.GithubEventNames.SCHEDULE) {
+        if (eventName === constants_1.GithubEventNames.SCHEDULE && remindAfter) {
             yield (0, services_1.pullRequestReminder)({ githubUserNames, githubSlackUserMapper, remindAfter }, { owner: repo.owner, repo: repo.repo });
         }
         else {
@@ -1386,13 +1386,23 @@ const getFileContent = () => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.getFileContent = getFileContent;
 const validateData = (data) => {
-    var _a, _b;
+    var _a, _b, _c, _d;
+    if (data.remindAfter && typeof data.remindAfter !== 'number') {
+        throw new Error(`"remindAfter" should be a number`);
+    }
+    if (data.remindAfter && data.remindAfter <= 0) {
+        throw new Error(`"remindAfter" should be greater than 0`);
+    }
     if (!data.githubUserNames || ((_a = data.githubUserNames) === null || _a === void 0 ? void 0 : _a.length) === 0) {
         throw new Error(`"githubUserNames" should be defined as ["username1", "username2"] but received githubUserNames:${data.githubUserNames}`);
     }
     if (!data.githubSlackUserMapper ||
         ((_b = Object.keys(data.githubSlackUserMapper)) === null || _b === void 0 ? void 0 : _b.length) === 0) {
-        throw new Error(`"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2"} but received githubSlackUserMapper:${JSON.stringify(data.githubSlackUserMapper)}`);
+        throw new Error(`"githubSlackUserMapper" should be defined as {"githubUserName1":"slackMemberId1", "githubUserName2":"slackMemberId2", "githubUserName3":"slackMemberId3"} but received githubSlackUserMapper:${JSON.stringify(data.githubSlackUserMapper)}`);
+    }
+    if (((_c = data.githubUserNames) === null || _c === void 0 ? void 0 : _c.length) < 3 ||
+        ((_d = Object.keys(data.githubSlackUserMapper)) === null || _d === void 0 ? void 0 : _d.length) < 3) {
+        throw new Error(`In "githubUserNames" or "githubSlackUserMapper", at least 3 users should be added`);
     }
 };
 
