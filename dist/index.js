@@ -596,7 +596,7 @@ const PullRequestWorkflow = () => __awaiter(void 0, void 0, void 0, function* ()
             return;
         }
         const { githubUserNames, githubSlackUserMapper, remindAfter } = yield (0, utils_1.getFileContent)();
-        if (eventName === constants_1.GithubEventNames.SCHEDULE && remindAfter) {
+        if (eventName === constants_1.GithubEventNames.SCHEDULE) {
             yield (0, services_1.pullRequestReminder)({ githubUserNames, githubSlackUserMapper, remindAfter }, { owner: repo.owner, repo: repo.repo });
         }
         else {
@@ -816,9 +816,9 @@ const github_1 = __nccwpck_require__(3273);
 const utils_1 = __nccwpck_require__(1606);
 const slack_1 = __nccwpck_require__(8697);
 const core = __importStar(__nccwpck_require__(2186));
-const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAfter = 1 }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
+const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAfter }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
     const pulls = yield github_1.githubService.listPullRequests({ owner, repo, state });
-    if (pulls.length === 0) {
+    if (pulls.length === 0 || !remindAfter) {
         return;
     }
     for (const { number, updated_at, requested_reviewers, user, html_url } of pulls) {
@@ -827,6 +827,10 @@ const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAft
                 repoName: repo,
                 prNumber: number
             });
+            if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
+                core.warning(`The Slack thread is not found for the pull request ${number}. Please revisit your Slack integration here https://github.com/cakarci/pull-request-workflow#create-a-slack-app-with-both-user`);
+                return;
+            }
             const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
                 prAuthor: user === null || user === void 0 ? void 0 : user.login,
                 requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login),
@@ -849,6 +853,15 @@ const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAft
                         channel: core.getInput('slack-channel-id'),
                         thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
                         blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(githubSlackUserMapper, secondApprover, html_url)
+                    });
+                }
+            }
+            if (APPROVED.length === 2 && CHANGES_REQUESTED.length !== 0) {
+                for (const changesRequester of CHANGES_REQUESTED) {
+                    yield slack_1.Slack.postMessage({
+                        channel: core.getInput('slack-channel-id'),
+                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
+                        blocks: (0, utils_1.generatePullRequestChangeRequesterReminderMessage)(githubSlackUserMapper, changesRequester, html_url)
                     });
                 }
             }
@@ -911,6 +924,40 @@ const generatePullRequestAuthorReminderMessage = (githubSlackUserMapper, userToR
     ];
 };
 exports.generatePullRequestAuthorReminderMessage = generatePullRequestAuthorReminderMessage;
+
+
+/***/ }),
+
+/***/ 6517:
+/***/ ((__unused_webpack_module, exports, __nccwpck_require__) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.generatePullRequestChangeRequesterReminderMessage = void 0;
+const get_user_to_log_1 = __nccwpck_require__(3070);
+const generatePullRequestChangeRequesterReminderMessage = (githubSlackUserMapper, userToRemind, html_url) => {
+    return [
+        {
+            type: 'section',
+            text: {
+                type: 'mrkdwn',
+                text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, userToRemind)} :wave:\nThe <${html_url}|pull request> is waiting for your approval.`
+            },
+            accessory: {
+                type: 'button',
+                text: {
+                    type: 'plain_text',
+                    text: ':arrow_right: Review PR',
+                    emoji: true
+                },
+                url: `${html_url}/files`,
+                action_id: 'button-action'
+            }
+        }
+    ];
+};
+exports.generatePullRequestChangeRequesterReminderMessage = generatePullRequestChangeRequesterReminderMessage;
 
 
 /***/ }),
@@ -1157,16 +1204,6 @@ const generatePullRequestReviewerReminderMessage = (githubSlackUserMapper, userT
             text: {
                 type: 'mrkdwn',
                 text: `Hi ${(0, get_user_to_log_1.getUserToLog)(githubSlackUserMapper, userToRemind)} :wave:\nThe <${html_url}|pull request> is waiting for your review.`
-            }
-        },
-        {
-            type: 'divider'
-        },
-        {
-            type: 'section',
-            text: {
-                type: 'mrkdwn',
-                text: '_Happy code reviews_ :tada:'
             },
             accessory: {
                 type: 'button',
@@ -1299,6 +1336,7 @@ __exportStar(__nccwpck_require__(3432), exports);
 __exportStar(__nccwpck_require__(9363), exports);
 __exportStar(__nccwpck_require__(5398), exports);
 __exportStar(__nccwpck_require__(9024), exports);
+__exportStar(__nccwpck_require__(6517), exports);
 
 
 /***/ }),
