@@ -109,7 +109,7 @@ A GitHub action that creates a workflow with **_four eyes principle_**
         "scakarci": "U04LNHEVA48",
         "cakarci": "U035MNNF8LW"
       },
-      "remindAfter": 6
+      "remindAfter": 12
     }
     ```
 
@@ -121,6 +121,13 @@ A GitHub action that creates a workflow with **_four eyes principle_**
     - object should include `githubUserName` as a `key` and `Slack Member ID` as a `value` [How to get Slack Member ID](https://user-images.githubusercontent.com/4185569/216829550-be52aa6e-4d01-4e98-b5f5-5f27d63cb431.png)
   - `remindAfter` **Optional**
     - If set then pull request collaborators (PR Author, Reviewers) will be reminded after `x` hours if the PR is waiting on them.
+    - In order to remind collaborators, the following schedule event needs to be defined in your `pull-request-workflow.yml`
+    - ```yaml
+      on:
+        schedule:
+          - cron: '0 10 * * 1-5'
+      ```
+    - `cron: '0 10 * * 1-5'` means “At 10:00 on every day-of-week from Monday through Friday.”
 
 - ### Create a Slack app with both user
   - Create a **Public Slack channel** and get the `Channel ID: C04LNJJUCKS` from the details of the channel
