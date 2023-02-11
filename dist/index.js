@@ -1436,7 +1436,7 @@ const validateData = ({ remindAfter, githubUserNames, githubSlackUserMapper }) =
     if ((githubUserNames && !Array.isArray(githubUserNames)) ||
         !githubUserNames ||
         (githubUserNames === null || githubUserNames === void 0 ? void 0 : githubUserNames.length) === 0) {
-        throw new Error(`"githubUserNames" should be defined as ["username1", "username2"]`);
+        throw new Error(`"githubUserNames" should be defined as ["githubUserName1", "githubUserName2", "githubUserName3"]`);
     }
     if ((githubSlackUserMapper && !isObject(githubSlackUserMapper)) ||
         !githubSlackUserMapper ||
