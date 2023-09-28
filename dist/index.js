@@ -816,66 +816,100 @@ const github_1 = __nccwpck_require__(3273);
 const utils_1 = __nccwpck_require__(1606);
 const slack_1 = __nccwpck_require__(8697);
 const core = __importStar(__nccwpck_require__(2186));
+/**
+ * Send reminders for pull requests.
+ */
 const pullRequestReminder = ({ githubUserNames, githubSlackUserMapper, remindAfter }, { owner, repo, state = 'open' }) => __awaiter(void 0, void 0, void 0, function* () {
     if (!remindAfter) {
+        // No need to send reminders if remindAfter is not defined.
         return;
     }
     const pulls = yield github_1.githubService.listPullRequests({ owner, repo, state });
     if (pulls.length === 0) {
+        // No pull requests to remind about.
         return;
     }
-    for (const { number, updated_at, requested_reviewers, user, html_url } of pulls) {
-        if (isTimeToRemind(updated_at, remindAfter)) {
-            const thread = yield (0, utils_1.getPullRequestThread)({
-                repoName: repo,
-                prNumber: number
-            });
-            if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
-                return;
-            }
-            const { APPROVED, CHANGES_REQUESTED, SECOND_APPROVERS } = yield (0, utils_1.getPullRequestReviewStateUsers)({
-                prAuthor: user === null || user === void 0 ? void 0 : user.login,
-                requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login),
-                githubUserNames
-            }, {
-                owner,
-                repo,
-                pull_number: number
-            });
-            if (APPROVED.length === 2 && CHANGES_REQUESTED.length === 0) {
-                yield slack_1.Slack.postMessage({
-                    channel: core.getInput('slack-channel-id'),
-                    thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                    blocks: (0, utils_1.generatePullRequestAuthorReminderMessage)(githubSlackUserMapper, user === null || user === void 0 ? void 0 : user.login, html_url)
-                });
-            }
-            if (APPROVED.length <= 1 && SECOND_APPROVERS.length !== 0) {
-                for (const secondApprover of SECOND_APPROVERS) {
-                    yield slack_1.Slack.postMessage({
-                        channel: core.getInput('slack-channel-id'),
-                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                        blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(githubSlackUserMapper, secondApprover, html_url)
-                    });
-                }
-            }
-            if (APPROVED.length === 2 && CHANGES_REQUESTED.length !== 0) {
-                for (const changesRequester of CHANGES_REQUESTED) {
-                    yield slack_1.Slack.postMessage({
-                        channel: core.getInput('slack-channel-id'),
-                        thread_ts: thread === null || thread === void 0 ? void 0 : thread.ts,
-                        blocks: (0, utils_1.generatePullRequestChangeRequesterReminderMessage)(githubSlackUserMapper, changesRequester, html_url)
-                    });
-                }
-            }
-        }
+    for (const pullRequest of pulls) {
+        yield processPullRequest(pullRequest, remindAfter, githubUserNames, githubSlackUserMapper, owner, repo);
     }
 });
 exports.pullRequestReminder = pullRequestReminder;
+/**
+ * Check if it's time to send a reminder for a pull request.
+ */
 const isTimeToRemind = (updatedAt, remindAfter) => {
-    const today = new Date().getTime();
-    const updatedAtDate = new Date(updatedAt).getTime();
-    const hoursInMilliSecond = 3600000 * remindAfter;
-    return today - hoursInMilliSecond > updatedAtDate;
+    const currentTime = new Date().getTime();
+    const updatedAtTime = new Date(updatedAt).getTime();
+    const remindThreshold = 3600000 * remindAfter; // Convert hours to milliseconds.
+    return currentTime - remindThreshold > updatedAtTime;
+};
+/**
+ * Process an individual pull request and send reminders if necessary.
+ */
+const processPullRequest = (pullRequest, remindAfter, githubUserNames, githubSlackUserMapper, owner, repo) => __awaiter(void 0, void 0, void 0, function* () {
+    const { number, updated_at, requested_reviewers, user, html_url } = pullRequest;
+    if (isTimeToRemind(updated_at, remindAfter)) {
+        const thread = yield (0, utils_1.getPullRequestThread)({
+            repoName: repo,
+            prNumber: number
+        });
+        if (!(thread === null || thread === void 0 ? void 0 : thread.ts)) {
+            // Skip if there's no thread timestamp.
+            return;
+        }
+        const reviewStateUsers = yield (0, utils_1.getPullRequestReviewStateUsers)({
+            prAuthor: user === null || user === void 0 ? void 0 : user.login,
+            requestedReviewers: requested_reviewers === null || requested_reviewers === void 0 ? void 0 : requested_reviewers.map((r) => r.login),
+            githubUserNames
+        }, {
+            owner,
+            repo,
+            pull_number: number
+        });
+        sendAuthorReminderIfApplicable(reviewStateUsers.APPROVED.length, reviewStateUsers.CHANGES_REQUESTED.length, html_url, thread.ts, user === null || user === void 0 ? void 0 : user.login, githubSlackUserMapper);
+        sendReviewerRemindersIfApplicable(reviewStateUsers.APPROVED.length, reviewStateUsers.SECOND_APPROVERS, html_url, thread.ts, githubSlackUserMapper);
+        sendChangeRequesterRemindersIfApplicable(reviewStateUsers.APPROVED.length, reviewStateUsers.CHANGES_REQUESTED, html_url, thread.ts, githubSlackUserMapper);
+    }
+});
+/**
+ * Send a reminder message to the author of the pull request if applicable.
+ */
+const sendAuthorReminderIfApplicable = (approvedCount, changesRequestedCount, htmlUrl, threadTs, authorLogin, slackUserMapper) => {
+    if (approvedCount === 2 && changesRequestedCount === 0) {
+        slack_1.Slack.postMessage({
+            channel: core.getInput('slack-channel-id'),
+            thread_ts: threadTs,
+            blocks: (0, utils_1.generatePullRequestAuthorReminderMessage)(slackUserMapper, authorLogin, htmlUrl)
+        });
+    }
+};
+/**
+ * Send reminders to additional reviewers if applicable.
+ */
+const sendReviewerRemindersIfApplicable = (approvedCount, secondApprovers, htmlUrl, threadTs, slackUserMapper) => {
+    if (approvedCount <= 1 && secondApprovers.length !== 0) {
+        for (const secondApprover of secondApprovers) {
+            slack_1.Slack.postMessage({
+                channel: core.getInput('slack-channel-id'),
+                thread_ts: threadTs,
+                blocks: (0, utils_1.generatePullRequestReviewerReminderMessage)(slackUserMapper, secondApprover, htmlUrl)
+            });
+        }
+    }
+};
+/**
+ * Send reminders to change requesters if applicable.
+ */
+const sendChangeRequesterRemindersIfApplicable = (approvedCount, changesRequesters, htmlUrl, threadTs, slackUserMapper) => {
+    if (approvedCount === 2 && changesRequesters.length !== 0) {
+        for (const changesRequester of changesRequesters) {
+            slack_1.Slack.postMessage({
+                channel: core.getInput('slack-channel-id'),
+                thread_ts: threadTs,
+                blocks: (0, utils_1.generatePullRequestChangeRequesterReminderMessage)(slackUserMapper, changesRequester, htmlUrl)
+            });
+        }
+    }
 };
 
 
